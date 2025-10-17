@@ -1,3 +1,4 @@
+<!-- === XTV Time Clock + Invoice Builder (Full Section) === -->
 <section id="xtv-timeclock" style="font-family:'Inter',sans-serif;background:#fff;color:#0f172a;padding:28px 16px;">
 
   <!-- html2pdf (optional; falls back to Print if blocked) -->
@@ -354,7 +355,6 @@
       const delBtn = tr.querySelector('td:last-child .del');
 
       let breakStartedAt = r.breakStart ? r.breakStart : '';
-      // apply PTO toggle
       function applyTypeUI(){
         const isWork = (tSel.value==='Work');
         tin.disabled = !isWork;
@@ -383,7 +383,7 @@
           out: tout.value.trim(),
           breakMin: +brkInput.value||0,
           breakStart: breakStartedAt||'',
-          breakEnd: '', // we only store start; end contributes to minutes
+          breakEnd: '',
           hours: hrs.value.trim(),
           notes: notes.value.trim()
         };
@@ -392,9 +392,7 @@
         renderTotals();
       }
 
-      // events
       [tSel,emp,job,loc,tin,tout,brkInput,notes,hrs].forEach(inp=>inp.addEventListener('input', ()=>sync(true)));
-
       inNow.addEventListener('click', ()=>{ tin.value = now12h(); sync(true); });
       outNow.addEventListener('click', ()=>{ tout.value = now12h(); sync(true); });
 
@@ -450,10 +448,7 @@
     }
 
     function recalcRow(tr, r){
-      if(r.type!=='Work'){
-        // PTO hours are manual
-        return;
-      }
+      if(r.type!=='Work'){ return; } // PTO is manual hours
       const mIn=parse12h(r.in), mOut=parse12h(r.out);
       let mins = (mIn!=null && mOut!=null) ? (mOut - mIn) : 0;
       if(mins<0) mins += 24*60; // cross midnight
@@ -523,50 +518,120 @@
       renderTable(rows);
     });
 
-    /* ---------- Copy: Time Entries ---------- */
+    /* ---------- Copy: Time Entries (Payroll-Ready Export) ---------- */
+    function toAMPM(hhmm){
+      if(!hhmm) return '';
+      let m = hhmm.match(/^(\d{1,2}):?(\d{2})?\s*(AM|PM)?$/i);
+      if(!m) return hhmm;
+      let h = parseInt(m[1],10), mm = m[2] || '00';
+      let ap = (m[3]||'').toUpperCase();
+      if(!ap){ ap = (h>=12)?'PM':'AM'; }
+      if(ap==='PM' && h<12) h+=12;
+      if(ap==='AM' && h===12) h=0;
+      const ampm = (h>=12)?'PM':'AM';
+      h = (h%12)||12;
+      return `${h}:${mm} ${ampm}`;
+    }
+    function getDateMMDDYYYY(iso){
+      if(!iso) return '';
+      const d = new Date(iso);
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const yyyy = d.getFullYear();
+      return `${mm}/${dd}/${yyyy}`;
+    }
+    function safeText(v){ return String(v||'').replace(/\n/g,' ').trim(); }
     function copyText(text){
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        return navigator.clipboard.writeText(text);
-      }
-      const ta=document.createElement('textarea');
-      ta.value=text; ta.style.position='fixed'; ta.style.top='-1000px'; document.body.appendChild(ta);
-      ta.focus(); ta.select();
-      try{ document.execCommand('copy'); }catch(e){}
-      document.body.removeChild(ta);
-      return Promise.resolve();
+      if(navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(text); }
+      const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.top='-1000px';
+      document.body.appendChild(ta); ta.focus(); ta.select(); try{ document.execCommand('copy'); }catch(e){}
+      document.body.removeChild(ta); return Promise.resolve();
     }
     function flash(btn, txt='✅ Copied!'){
-      const prev=btn.textContent;
-      btn.textContent=txt; btn.style.background='#22c55e';
+      const prev=btn.textContent; btn.textContent=txt; btn.style.background='#22c55e';
       setTimeout(()=>{ btn.textContent=prev; btn.style.background='linear-gradient(90deg,#0072ff,#00c6ff)'; }, 1800);
     }
 
     el.copy.addEventListener('click', ()=>{
-      const header = ['Type','Employee','Job','Location','Time In','Time Out','Break (min)','Hours','Notes'];
-      const lines=[header.join('\t')];
+      const dateStr = getDateMMDDYYYY(el.date.value);
+      const header = ['Date','Employee','Job','Location','Shift #','Clock In','Clock Out','Break (min)','PTO (hr)','Total Hours','Notes'];
+      const lines = [ header.join('\t') ];
+      const shiftCount = new Map();
+
       el.body.querySelectorAll('tr').forEach(tr=>{
-        const tSel=tr.querySelector('td:nth-child(1) select');
-        const tds=tr.querySelectorAll('td');
-        const row=[
-          tSel.value,
-          tds[1].querySelector('input').value,
-          tds[2].querySelector('input').value,
-          tds[3].querySelector('input').value,
-          tds[4].querySelector('input').value,
-          tds[5].querySelector('input').value,
-          tds[6].querySelector('input').value,
-          tds[7].querySelector('input').value,
-          tds[8].querySelector('input').value,
-        ].map(x=>String(x||'').replace(/\n/g,' '));
-        lines.push(row.join('\t'));
+        const tds = tr.querySelectorAll('td');
+        const employee = safeText(tds[1].querySelector('input')?.value);
+        const job      = safeText(tds[2].querySelector('input')?.value);
+        const location = safeText(tds[3].querySelector('input')?.value);
+        const timeIn   = safeText(tds[4].querySelector('input')?.value);
+        const timeOut  = safeText(tds[5].querySelector('input')?.value);
+        const brkMin   = safeText(tds[6].querySelector('input')?.value);
+        const hours    = safeText(tds[7].querySelector('input')?.value);
+        const notes    = safeText(tds[8].querySelector('input')?.value);
+        const ptoHrEl  = tr.querySelector('[data-pto]');
+        const ptoHr    = ptoHrEl ? safeText(ptoHrEl.value) : '';
+
+        const key = employee || '(No name)';
+        const n = (shiftCount.get(key) || 0) + 1;
+        shiftCount.set(key, n);
+
+        lines.push([
+          dateStr, employee, job, location, n,
+          toAMPM(timeIn), toAMPM(timeOut), brkMin, ptoHr, hours, notes
+        ].join('\t'));
       });
+
+      const empTotals = new Map();
+      el.body.querySelectorAll('tr').forEach(tr=>{
+        const tds   = tr.querySelectorAll('td');
+        const name  = safeText(tds[1].querySelector('input')?.value) || '(No name)';
+        const hrs   = parseFloat(tds[7].querySelector('input')?.value || '0') || 0;
+        empTotals.set(name, (empTotals.get(name)||0) + hrs);
+      });
+
+      lines.push('');
+      lines.push('Per-Employee Totals');
+      lines.push(['Employee','Total Hours'].join('\t'));
+      let grand = 0;
+      for(const [emp, hrs] of empTotals.entries()){
+        grand += hrs;
+        lines.push([emp, hrs.toFixed(2)].join('\t'));
+      }
+      lines.push(['TOTAL (All Employees)', grand.toFixed(2)].join('\t'));
+
+      const invRows = [];
+      const invTableBody = el.invBody;
+      if(invTableBody && invTableBody.querySelector('tr')){
+        invTableBody.querySelectorAll('tr').forEach(row=>{
+          const tds = row.querySelectorAll('td');
+          const emp = safeText(tds[0]?.innerText);
+          const job = safeText(tds[1]?.innerText);
+          const loc = safeText(tds[2]?.innerText);
+          const hrs = safeText(tds[4]?.innerText);
+          const rate = row.querySelector('.invRate')?.value || '';
+          const amt  = row.querySelector('.invAmt')?.textContent || '';
+          if(rate || amt){
+            invRows.push([emp, job, loc, hrs, rate, amt]);
+          }
+        });
+        if(invRows.length){
+          lines.push('');
+          lines.push('Invoice Totals');
+          lines.push(['Employee','Job','Location','Hours','Rate','Amount'].join('\t'));
+          invRows.forEach(r=>lines.push(r.join('\t')));
+          lines.push(['Subtotal','','','','',String(el.invSub.textContent||'0.00')].join('\t'));
+          const taxPct = parseFloat(el.invTax.value||'0')||0;
+          lines.push([`Tax (${taxPct}%)`,'','','','',String(el.invTaxAmt.textContent||'0.00')].join('\t'));
+          lines.push(['TOTAL','','','','',String(el.invTotal.textContent||'0.00')].join('\t'));
+        }
+      }
+
       copyText(lines.join('\n')).then(()=>flash(el.copy));
     });
 
     /* ---------- Copy: Daily Summary ---------- */
     el.copySummary.addEventListener('click', ()=>{
       const rows=getRows();
-      // Build Employee -> (Work rows by Job/Location) + PTO rows
       const out=[];
       out.push(['Employee','Job/Location or PTO Type','Hours'].join('\t'));
       const empMap=new Map();
@@ -720,11 +785,11 @@
       let body = `Invoice #: ${el.invNumber.value}\nDate: ${el.invDate.value}\nBusiness: ${el.invBiz.value}\n${el.invBizAddr.value}\n\nBill To:\n${el.invClient.value}\n${el.invClientAddr.value}\n\n`;
       el.invBody.querySelectorAll('tr').forEach(tr=>{
         const tds = tr.querySelectorAll('td');
-        const emp = tds[0].innerText.trim();
-        const job = tds[1].innerText.trim();
-        const loc = tds[2].innerText.trim();
-        const typ = tds[3].innerText.trim();
-        const hrs = tds[4].innerText.trim();
+        const emp = (tds[0]?.innerText||'').trim();
+        const job = (tds[1]?.innerText||'').trim();
+        const loc = (tds[2]?.innerText||'').trim();
+        const typ = (tds[3]?.innerText||'').trim();
+        const hrs = (tds[4]?.innerText||'').trim();
         const rate = tr.querySelector('.invRate')?.value || '0.00';
         const amt = tr.querySelector('.invAmt')?.textContent || '0.00';
         body += `${emp} | ${job} @ ${loc} (${typ}) — ${hrs}h × $${rate} = $${amt}\n`;
@@ -747,7 +812,6 @@
         const opt = { margin: 0.5, filename: (el.invNumber.value || 'invoice') + '.pdf', image: { type:'jpeg', quality:0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit:'in', format:'letter', orientation:'portrait' } };
         html2pdf().set(opt).from(modalBox).save();
       }else{
-        // GoDaddy fallback
         window.print();
       }
     });
@@ -756,7 +820,6 @@
     el.print.addEventListener('click', ()=>{ captureInvSettings(); window.print(); });
 
     /* ---------- Init ---------- */
-    document.getElementById('tcAddRow').disabled = false;
     loadDate(new Date());
 
   })();
@@ -771,7 +834,7 @@
     "applicationCategory":"BusinessApplication",
     "operatingSystem":"WebBrowser",
     "description":"Track daily hours by employee, job, and location. PTO inline. Copy time entries and summaries to Excel. Generate printable or downloadable PDF invoices. Data persists locally.",
-    "softwareVersion":"2.0",
+    "softwareVersion":"2.1",
     "offers":{"@type":"Offer","price":"0","priceCurrency":"USD","availability":"https://schema.org/InStock"},
     "publisher":{"@type":"Organization","name":"Xecute The Vision"}
   }
