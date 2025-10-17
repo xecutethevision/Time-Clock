@@ -686,7 +686,7 @@
           <td style="padding:8px;border-top:1px solid #f1f5f9">${item.type}</td>
           <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">${item.hours.toFixed(2)}</td>
           <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">
-            <input class="invRateInput invRate" type="number" step="0.01" placeholder="0.00">
+  <input class="invRateInput invRate" type="text" inputmode="decimal" pattern="[0-9]*\.?[0-9]*" placeholder="0.00" style="width:80px;">
           </td>
           <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right"><span class="invAmt">0.00</span></td>
         `;
@@ -769,3 +769,4 @@
   }
   </script>
 </section>
+
