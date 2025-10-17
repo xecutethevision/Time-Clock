@@ -76,6 +76,12 @@
     #xtv-timeclock .invTable{font-size:13px}
     #xtv-timeclock .invRateInput{width:80px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;text-align:right}
 
+    /* Ensure invoice inputs are clickable in page builders that overlay sections */
+#xtv-timeclock .modal, 
+#xtv-timeclock .modal * { pointer-events: auto !important; }
+#xtv-timeclock .modal .box { position: relative; z-index: 100001; }
+
+
     @media(max-width:1000px){ #xtv-timeclock .totals{grid-template-columns:1fr} #xtv-timeclock .grid2{grid-template-columns:1fr} }
 
     /* Print only the invoice modal */
@@ -86,6 +92,7 @@
       #xtv-timeclock .actions, #xtv-timeclock .bar, #xtv-timeclock .kicker, #xtv-timeclock h3:not(.invTitle){ display:none !important; }
       #xtv-timeclock .modal .box{ width:auto; max-height:none; overflow:visible; box-shadow:none; border:none; padding:0; }
     }
+    
   </style>
 
   <div class="wrap">
@@ -217,6 +224,11 @@
   (function(){
     const LS_ENTRIES_KEY = 'xtv_tc_entries_v3';
     const LS_INVOICE_KEY = 'xtv_tc_invoice_settings_v3';
+
+    const LS_RATE_KEY = 'xtv_tc_rate_map_v1';
+function loadRates(){ try { return JSON.parse(localStorage.getItem(LS_RATE_KEY) || '{}'); } catch(e){ return {}; } }
+function saveRates(map){ localStorage.setItem(LS_RATE_KEY, JSON.stringify(map)); }
+
 
     const el = {
       date: document.getElementById('tcDate'),
@@ -695,48 +707,91 @@ const header = ['Date','Type','Employee','Job','Location','AM In','AM Out','PM I
       return Array.from(groups.values());
     }
 
-    function renderInvoice(){
-      captureInvSettings();
-      el.invForDate.textContent = `(For Date: ${el.date.value})`; // show selected date on invoice
-      const lines = buildInvoiceLines();
-      el.invBody.innerHTML='';
-      lines.forEach(item=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td style="padding:8px;border-top:1px solid #f1f5f9">${item.emp}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9">${item.job}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9">${item.loc}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9">${item.type}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">${item.hours.toFixed(2)}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">
-<input class="invRateInput invRate" type="text" inputmode="decimal" placeholder="0.00" style="width:80px;border:1px solid #cbd5e1;border-radius:8px;padding:6px 8px;">
-          </td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right"><span class="invAmt">0.00</span></td>
-        `;
-        const rateInput=tr.querySelector('.invRate');
-        const amtSpan=tr.querySelector('.invAmt');
-        function recalc(){
-          const rate=parseFloat(rateInput.value)||0;
-          const amt = rate * item.hours;
-          amtSpan.textContent = money(amt);
-          recalcTotals();
-        }
-        rateInput.addEventListener('input', recalc);
-        el.invBody.appendChild(tr);
-      });
+  function renderInvoice(){
+  captureInvSettings();
+  el.invForDate.textContent = `(For Date: ${el.date.value})`; // show selected date on invoice
+  const lines = buildInvoiceLines();
+  const rateMap = loadRates(); // { key: rate }
 
-      function recalcTotals(){
-        let sub=0;
-        el.invBody.querySelectorAll('.invAmt').forEach(s=>sub += parseFloat(s.textContent)||0);
-        el.invSub.textContent = money(sub);
-        const taxPct = parseFloat(el.invTax.value)||0;
-        const taxAmt = sub * (taxPct/100);
-        el.invTaxAmt.textContent = money(taxAmt);
-        el.invTotal.textContent = money(sub + taxAmt);
-      }
-      recalcTotals();
-      el.invTax.addEventListener('input', recalcTotals, {once:true});
+  el.invBody.innerHTML='';
+
+  lines.forEach(item=>{
+    // Unique key for this invoice line (so rates persist per Employee/Job/Location/Type)
+    const key = [item.emp||'(No name)', item.job||'(No job)', item.loc||'(No location)', item.type||''].join('|');
+
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding:8px;border-top:1px solid #f1f5f9">${item.emp}</td>
+      <td style="padding:8px;border-top:1px solid #f1f5f9">${item.job}</td>
+      <td style="padding:8px;border-top:1px solid #f1f5f9">${item.loc}</td>
+      <td style="padding:8px;border-top:1px solid #f1f5f9">${item.type}</td>
+      <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">${item.hours.toFixed(2)}</td>
+      <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">
+        <input class="invRateInput invRate"
+               type="number" step="0.01" min="0"
+               inputmode="decimal" autocomplete="off"
+               placeholder="0.00"
+               style="width:90px;border:1px solid #cbd5e1;border-radius:8px;padding:6px 8px;text-align:right;">
+      </td>
+      <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">
+        <span class="invAmt">0.00</span>
+      </td>
+    `;
+
+    const rateInput = tr.querySelector('.invRate');
+    const amtSpan   = tr.querySelector('.invAmt');
+
+    // Prefill saved rate if present
+    if (rateMap[key] != null && rateMap[key] !== '') {
+      rateInput.value = rateMap[key];
     }
+
+    // Make sure typing always works (some builders swallow events)
+    ['click','mousedown','mouseup','keydown','keyup'].forEach(evt=>{
+      rateInput.addEventListener(evt, e=>e.stopPropagation(), {passive:true});
+    });
+
+    function recalc(){
+      const rate = parseFloat(rateInput.value) || 0;
+      const amt  = rate * item.hours;
+      amtSpan.textContent = money(amt);
+      rateMap[key] = rateInput.value; // persist current rate string as typed
+      saveRates(rateMap);
+      recalcTotals();
+    }
+
+    // Recalc on input and on blur just in case
+    rateInput.addEventListener('input', recalc);
+    rateInput.addEventListener('change', recalc);
+    rateInput.addEventListener('focus', function(){ this.select(); });
+
+    el.invBody.appendChild(tr);
+    // Initial compute for this row
+    recalc();
+  });
+
+  // Totals (subtotal, tax, total)
+  function recalcTotals(){
+    let sub=0;
+    el.invBody.querySelectorAll('.invAmt').forEach(s=> sub += parseFloat(s.textContent)||0);
+    el.invSub.textContent = money(sub);
+    const taxPct = parseFloat(el.invTax.value)||0;
+    const taxAmt = sub * (taxPct/100);
+    el.invTaxAmt.textContent = money(taxAmt);
+    el.invTotal.textContent = money(sub + taxAmt);
+  }
+  recalcTotals();
+
+  // When tax changes, update totals continuously (not once)
+  el.invTax.addEventListener('input', recalcTotals);
+  el.invTax.addEventListener('change', recalcTotals);
+
+  // Focus the first rate field for convenience
+  setTimeout(()=>{
+    const first = el.invBody.querySelector('.invRate');
+    if(first) first.focus();
+  }, 0);
+}
 
     function ensureInvoiceDefaults(){
       const s=loadInvSettings();
@@ -792,6 +847,7 @@ const header = ['Date','Type','Employee','Job','Location','AM In','AM Out','PM I
   }
   </script>
 </section>
+
 
 
 
