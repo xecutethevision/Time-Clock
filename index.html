@@ -1,632 +1,113 @@
-<section id="xtv-timeclock" style="font-family:'Inter',sans-serif;background:#fff;color:#0f172a;padding:28px 16px;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XTV Time Clock + Invoice Builder</title>
 
-  <!-- html2pdf for Download PDF -->
+  <!-- ✅ iframe buster: ensures app runs top-level (not inside GoDaddy iframe) -->
+  <script>
+    (function () {
+      try {
+        if (window.top !== window.self) {
+          window.top.location.href = window.location.href;
+        }
+      } catch (e) {
+        window.open(window.location.href, '_blank', 'noopener,noreferrer');
+      }
+    })();
+  </script>
+
+  <!-- ✅ include html2pdf -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
     integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <style>
-    #xtv-timeclock .kicker{
-      display:inline-block;padding:10px 20px;border-radius:999px;
-      background:linear-gradient(135deg,#0072ff,#00c6ff);color:#fff;font-weight:800;font-size:20px;margin:0 0 10px;
-    }
-    #xtv-timeclock h3{font-weight:800;font-size:22px;margin:10px 0 14px;}
-    #xtv-timeclock .muted{color:#64748b;font-size:14px}
-    #xtv-timeclock .wrap{max-width:1200px;margin:0 auto}
-
-    /* Controls */
-    #xtv-timeclock .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:10px 0 14px}
-    #xtv-timeclock .btn{
-      background:linear-gradient(90deg,#0072ff,#00c6ff);color:#fff;border:none;border-radius:999px;
-      padding:8px 14px;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s;font-size:14px
-    }
-    #xtv-timeclock .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.12)}
-    #xtv-timeclock .btn.alt{background:#e2e8f0;color:#0f172a}
-    #xtv-timeclock input, #xtv-timeclock select{
-      border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;font-size:14px;outline:none
-    }
-    #xtv-timeclock input:focus{box-shadow:0 0 0 2px #93c5fd;border-color:#60a5fa}
-
-    /* Table */
-    #xtv-timeclock .table-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:16px}
-    #xtv-timeclock table{width:100%;border-collapse:collapse;font-size:14px;min-width:900px}
-    #xtv-timeclock thead th{position:sticky;top:0;background:#f1f5f9;border-bottom:1px solid #e5e7eb;padding:10px;text-align:center}
-    #xtv-timeclock tbody td{border-top:1px solid #f1f5f9;padding:8px}
-    #xtv-timeclock tbody td input, #xtv-timeclock tbody td textarea{
-      width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;font-size:13px
-    }
-    #xtv-timeclock .del{background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:700}
-    #xtv-timeclock .del:hover{background:#dc2626}
-
-    /* Totals */
-    #xtv-timeclock .totals{
-      margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px
-    }
-    #xtv-timeclock .card{
-      border:1px solid #e5e7eb;border-radius:14px;padding:12px;background:#f9fafb;text-align:left
-    }
-    #xtv-timeclock .card h4{margin:0 0 6px;font-size:15px;font-weight:800}
-    #xtv-timeclock .row{display:flex;justify-content:space-between;font-size:13px;color:#334155}
-
-    /* Invoice modal */
-    #xtv-timeclock .modal{
-      position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:99999
-    }
-    #xtv-timeclock .modal .box{
-      width:min(900px,95vw);background:#fff;border-radius:16px;padding:16px 16px 20px;max-height:90vh;overflow:auto
-    }
-    #xtv-timeclock .modal h3{margin:6px 0 10px}
-    #xtv-timeclock .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    #xtv-timeclock .stack{display:flex;flex-direction:column;gap:6px}
-    #xtv-timeclock .logoPreview{width:100px;height:100px;object-fit:contain;border:1px dashed #e5e7eb;border-radius:12px;background:#f8fafc}
-    #xtv-timeclock .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px}
-    #xtv-timeclock .sum{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
-    #xtv-timeclock .sum div{background:#f1f5f9;border-radius:10px;padding:8px 10px;font-weight:700}
-
-    @media(max-width:900px){
-      #xtv-timeclock .totals{grid-template-columns:1fr}
-      #xtv-timeclock .grid2{grid-template-columns:1fr}
+    body { font-family:'Inter',sans-serif; background:#fff; color:#0f172a; margin:0; padding:0; }
+    .kicker { display:inline-block; background:linear-gradient(135deg,#0072ff,#00c6ff); color:#fff;
+      font-weight:800; padding:10px 20px; border-radius:999px; margin:20px 0; }
+    .btn { background:linear-gradient(90deg,#0072ff,#00c6ff); color:#fff; border:none;
+      border-radius:999px; padding:10px 16px; font-weight:700; cursor:pointer; margin:5px; }
+    .btn:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.12); }
+    .wrap { max-width:1200px; margin:0 auto; padding:20px; }
+    table { border-collapse:collapse; width:100%; }
+    th, td { border:1px solid #e5e7eb; padding:8px; text-align:left; }
+    th { background:#f1f5f9; }
+    .modal { position:fixed; inset:0; background:rgba(15,23,42,.6); display:none;
+      align-items:center; justify-content:center; z-index:9999; padding:20px; }
+    .modal .box { background:#fff; padding:20px; border-radius:16px; max-width:900px; width:95%; }
+    @media print {
+      body * { visibility:hidden; }
+      .modal, .modal * { visibility:visible; }
+      .modal { position:static; background:#fff; }
     }
   </style>
+</head>
+<body>
 
   <div class="wrap">
     <div class="kicker">XTV Time Clock + Invoice Builder</div>
     <h3>Track hours by Employee, Job & Location — then invoice in one click</h3>
-    <p class="muted">Use the date controls to switch days. Your entries and settings auto-save in this browser.</p>
 
-    <!-- Top bar -->
-    <div class="bar">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="btn alt" id="tcPrev">&larr; Prev Day</button>
-        <input type="date" id="tcDate">
-        <button class="btn alt" id="tcNext">Next Day &rarr;</button>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn" id="tcAddRow">➕ Add Row</button>
-        <button class="btn" id="tcCopy">📋 Copy to Excel</button>
-        <button class="btn" id="tcInvoice">🧾 Generate Invoice</button>
-      </div>
+    <div>
+      <button id="tcAddRow" class="btn">➕ Add Row</button>
+      <button id="tcInvoice" class="btn">🧾 Generate Invoice</button>
+      <button id="tcDownload" class="btn">⬇️ Download PDF</button>
     </div>
 
-    <!-- Entry Table -->
-    <div class="table-wrap">
-      <table id="tcTable" aria-label="Time entries">
-        <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Job</th>
-            <th>Location</th>
-            <th>Time In</th>
-            <th>Time Out</th>
-            <th>Break (min)</th>
-            <th>Hours</th>
-            <th>Notes</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="tcBody"></tbody>
-      </table>
-    </div>
-
-    <!-- Totals by Employee (for selected day) -->
-    <div style="margin-top:14px;">
-      <h3 style="font-size:18px;margin:0 0 8px;">Daily Totals by Employee</h3>
-      <div class="totals" id="tcTotals"></div>
-    </div>
+    <table id="tcTable">
+      <thead>
+        <tr><th>Employee</th><th>Job</th><th>Location</th><th>Hours</th></tr>
+      </thead>
+      <tbody id="tcBody"></tbody>
+    </table>
   </div>
 
-  <!-- Invoice Modal -->
+  <!-- ✅ Invoice Modal -->
   <div class="modal" id="tcModal">
-    <div class="box">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <h3>Invoice</h3>
-        <div class="actions">
-          <button class="btn alt" id="tcClose">Close</button>
-          <button class="btn" id="tcEmail">✉️ Email Invoice</button>
-          <button class="btn" id="tcDownload">⬇️ Download PDF</button>
-          <button class="btn" id="tcPrint">🖨️ Print</button>
-        </div>
-      </div>
-
-      <div class="grid2" style="margin-top:8px;">
-        <div class="stack">
-          <label><strong>Business Name</strong></label>
-          <input id="invBiz" placeholder="Your business name">
-          <label><strong>Business Address</strong></label>
-          <textarea id="invBizAddr" rows="3" placeholder="Street, City, State, ZIP"></textarea>
-          <div style="display:flex;gap:10px;align-items:center;">
-            <img id="invLogoPrev" class="logoPreview" alt="Logo preview">
-            <div class="stack" style="flex:1;">
-              <label><strong>Logo (optional)</strong></label>
-              <input type="file" id="invLogo" accept="image/*">
-            </div>
-          </div>
-        </div>
-
-        <div class="stack">
-          <label><strong>Bill To (Client)</strong></label>
-          <input id="invClient" placeholder="Client / Company">
-          <label><strong>Client Email (for Email Invoice)</strong></label>
-          <input id="invClientEmail" type="email" placeholder="client@email.com">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <div class="stack" style="flex:1;">
-              <label><strong>Invoice #</strong></label>
-              <input id="invNumber" placeholder="e.g., 1001">
-            </div>
-            <div class="stack" style="flex:1;">
-              <label><strong>Date</strong></label>
-              <input id="invDate" type="date">
-            </div>
-            <div class="stack" style="flex:1;">
-              <label><strong>Tax %</strong></label>
-              <input id="invTax" type="number" step="0.01" placeholder="0">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="invLinesWrap" style="margin-top:12px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-          <thead>
-            <tr style="background:#f1f5f9;">
-              <th style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;">Employee</th>
-              <th style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;">Job</th>
-              <th style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;">Location</th>
-              <th style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;">Hours</th>
-              <th style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;">Rate</th>
-              <th style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;">Amount</th>
-            </tr>
-          </thead>
-          <tbody id="invBody"></tbody>
-        </table>
-      </div>
-
-      <div class="sum">
-        <div>Subtotal: $<span id="invSub">0.00</span></div>
-        <div>Tax: $<span id="invTaxAmt">0.00</span></div>
-        <div>Total: $<span id="invTotal">0.00</span></div>
-      </div>
+    <div class="box" id="invoiceBox">
+      <h2>Invoice</h2>
+      <p id="invoiceContent">Example invoice details will appear here...</p>
+      <button id="closeModal" class="btn">Close</button>
     </div>
   </div>
 
   <script>
-  (function(){
-    const LS_ENTRIES_KEY = 'xtv_tc_entries_v1';
-    const LS_INVOICE_KEY = 'xtv_tc_invoice_settings_v1';
+    const body = document.getElementById('tcBody');
+    const modal = document.getElementById('tcModal');
+    const invoiceBox = document.getElementById('invoiceBox');
 
-    const el = {
-      date: document.getElementById('tcDate'),
-      prev: document.getElementById('tcPrev'),
-      next: document.getElementById('tcNext'),
-      add: document.getElementById('tcAddRow'),
-      copy: document.getElementById('tcCopy'),
-      body: document.getElementById('tcBody'),
-      totals: document.getElementById('tcTotals'),
-      invoiceBtn: document.getElementById('tcInvoice'),
-
-      modal: document.getElementById('tcModal'),
-      close: document.getElementById('tcClose'),
-      email: document.getElementById('tcEmail'),
-      download: document.getElementById('tcDownload'),
-      print: document.getElementById('tcPrint'),
-
-      invBiz: document.getElementById('invBiz'),
-      invBizAddr: document.getElementById('invBizAddr'),
-      invLogo: document.getElementById('invLogo'),
-      invLogoPrev: document.getElementById('invLogoPrev'),
-      invClient: document.getElementById('invClient'),
-      invClientEmail: document.getElementById('invClientEmail'),
-      invNumber: document.getElementById('invNumber'),
-      invDate: document.getElementById('invDate'),
-      invTax: document.getElementById('invTax'),
-
-      invBody: document.getElementById('invBody'),
-      invSub: document.getElementById('invSub'),
-      invTaxAmt: document.getElementById('invTaxAmt'),
-      invTotal: document.getElementById('invTotal')
-    };
-
-    // ---------- Helpers
-    function toYYYYMMDD(d){ const t=new Date(d); const m=('0'+(t.getMonth()+1)).slice(-2), da=('0'+t.getDate()).slice(-2); return t.getFullYear()+'-'+m+'-'+da; }
-    function parseHM(v){ if(!v) return null; const m=v.match(/^(\d{1,2}):?(\d{2})?$/); if(!m) return null; const h=+m[1], mm= m[2]?+m[2]:0; return h*60+mm; }
-    function fmtHours(mins){ if(isNaN(mins)||mins<=0) return '0.00'; return (mins/60).toFixed(2); }
-    function money(n){ return (Math.round(n*100)/100).toFixed(2); }
-
-    // ---------- Storage
-    function loadAll(){ try{return JSON.parse(localStorage.getItem(LS_ENTRIES_KEY)||'{}')}catch(e){return{}} }
-    function saveAll(obj){ localStorage.setItem(LS_ENTRIES_KEY, JSON.stringify(obj)); }
-    function loadDay(date){ const all=loadAll(); return all[date]||[]; }
-    function saveDay(date, rows){ const all=loadAll(); all[date]=rows; saveAll(all); }
-
-    function loadInvSettings(){
-      try{ return JSON.parse(localStorage.getItem(LS_INVOICE_KEY)||'{}'); }catch(e){ return {}; }
-    }
-    function saveInvSettings(s){ localStorage.setItem(LS_INVOICE_KEY, JSON.stringify(s)); }
-
-    // ---------- Rows
-    function newRowData(){
-      return { employee:'', job:'', location:'', in:'', out:'', break:0, notes:'' };
-    }
-
-    function renderTable(rows){
-      el.body.innerHTML='';
-      rows.forEach((r, idx)=>el.body.appendChild(renderRow(r, idx)));
-      recalcAll();
-    }
-
-    function renderRow(r, idx){
-      const tr=document.createElement('tr');
-      tr.innerHTML=`
-        <td><input placeholder="Employee" value="${r.employee||''}"></td>
-        <td><input placeholder="Job" value="${r.job||''}"></td>
-        <td><input placeholder="Location" value="${r.location||''}"></td>
-        <td><input placeholder="09:00" value="${r.in||''}"></td>
-        <td><input placeholder="17:00" value="${r.out||''}"></td>
-        <td><input type="number" min="0" step="1" placeholder="0" value="${r.break||0}"></td>
-        <td><input data-hours readonly tabindex="-1"></td>
-        <td><input placeholder="Notes" value="${r.notes||''}"></td>
-        <td><button class="del">✖</button></td>
-      `;
-      // events
-      const [emp, job, loc, tin, tout, brk, hrs, notes, delBtn] = [
-        ...tr.querySelectorAll('td')
-      ].map(td=>td.firstElementChild);
-
-      function sync(){
-        const rows=getRows();
-        rows[idx]={
-          employee: emp.value.trim(),
-          job: job.value.trim(),
-          location: loc.value.trim(),
-          in: tin.value.trim(),
-          out: tout.value.trim(),
-          break: +brk.value||0,
-          notes: notes.value.trim()
-        };
-        saveDay(el.date.value, rows);
-        recalcRow(tr, rows[idx]);
-        renderTotals();
-      }
-
-      [emp,job,loc,tin,tout,brk,notes].forEach(inp=>inp.addEventListener('input', sync));
-      delBtn.addEventListener('click', ()=>{
-        const rows=getRows().filter((_,i)=>i!==idx);
-        saveDay(el.date.value, rows);
-        renderTable(rows);
-        renderTotals();
-      });
-
-      return tr;
-    }
-
-    function recalcRow(tr, r){
-      const mIn=parseHM(r.in), mOut=parseHM(r.out);
-      let mins = (mIn!=null && mOut!=null) ? (mOut - mIn) : 0;
-      if(mins<0) mins += 24*60; // cross midnight safety
-      mins -= (parseInt(r.break,10)||0);
-      if(mins<0) mins=0;
-      const hrs=fmtHours(mins);
-      tr.querySelector('[data-hours]').value=hrs;
-    }
-
-    function recalcAll(){
-      const rows=getRows();
-      el.body.querySelectorAll('tr').forEach((tr,i)=>recalcRow(tr, rows[i]));
-      renderTotals();
-    }
-
-    function getRows(){
-      const rows=[];
-      el.body.querySelectorAll('tr').forEach(tr=>{
-        const tds=tr.querySelectorAll('td');
-        rows.push({
-          employee: tds[0].querySelector('input').value.trim(),
-          job:      tds[1].querySelector('input').value.trim(),
-          location: tds[2].querySelector('input').value.trim(),
-          in:       tds[3].querySelector('input').value.trim(),
-          out:      tds[4].querySelector('input').value.trim(),
-          break:   +tds[5].querySelector('input').value || 0,
-          notes:    tds[7].querySelector('input').value.trim(),
-        });
-      });
-      return rows;
-    }
-
-    // ---------- Totals by Employee (selected day)
-    function renderTotals(){
-      const rows=getRows();
-      const map=new Map();
-      rows.forEach(r=>{
-        const mIn=parseHM(r.in), mOut=parseHM(r.out);
-        if(mIn==null||mOut==null) return;
-        let mins=mOut-mIn;
-        if(mins<0) mins+=1440;
-        mins -= (parseInt(r.break,10)||0);
-        if(mins<0) mins=0;
-
-        const key = (r.employee||'').trim() || '(No name)';
-        if(!map.has(key)) map.set(key, []);
-        map.get(key).push({job:r.job||'', location:r.location||'', mins});
-      });
-
-      el.totals.innerHTML='';
-      for(const [emp, items] of map.entries()){
-        const totalM = items.reduce((a,b)=>a+b.mins,0);
-        const card=document.createElement('div');
-        card.className='card';
-        card.innerHTML=`<h4>${emp}</h4>
-          <div class="row"><div>Total Hours</div><div><strong>${fmtHours(totalM)}</strong></div></div>
-          ${items.map(x=>`<div class="row"><div>${x.job||'(no job)'} @ ${x.location||'(no location)'}</div><div>${fmtHours(x.mins)} h</div></div>`).join('')}
-        `;
-        el.totals.appendChild(card);
-      }
-      if(map.size===0){
-        const none=document.createElement('div');
-        none.className='card';
-        none.innerHTML='<h4>No entries yet</h4><div class="row"><div>Add rows above to see totals.</div><div></div></div>';
-        el.totals.appendChild(none);
-      }
-    }
-
-    // ---------- Date controls
-    function loadDate(d){
-      el.date.value = toYYYYMMDD(d||new Date());
-      const rows = loadDay(el.date.value);
-      if(rows.length===0){ // start with one blank row
-        const blank=[newRowData()];
-        saveDay(el.date.value, blank);
-        renderTable(blank);
-      }else{
-        renderTable(rows);
-      }
-    }
-    el.prev.addEventListener('click', ()=>{
-      const d=new Date(el.date.value); d.setDate(d.getDate()-1); loadDate(d);
-    });
-    el.next.addEventListener('click', ()=>{
-      const d=new Date(el.date.value); d.setDate(d.getDate()+1); loadDate(d);
-    });
-    el.date.addEventListener('change', ()=>loadDate(new Date(el.date.value)));
-
-    // ---------- Add Row
-    el.add.addEventListener('click', ()=>{
-      const rows = loadDay(el.date.value);
-      rows.push(newRowData());
-      saveDay(el.date.value, rows);
-      renderTable(rows);
+    document.getElementById('tcAddRow').addEventListener('click', () => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td contenteditable="true">John Doe</td>
+        <td contenteditable="true">Consulting</td>
+        <td contenteditable="true">NY</td>
+        <td contenteditable="true">8</td>`;
+      body.appendChild(tr);
     });
 
-    // ---------- Copy to Excel (with fallback) + flash
-    function copyTextFallback(text){
-      const ta=document.createElement('textarea');
-      ta.value=text; ta.style.position='fixed'; ta.style.top='-1000px'; document.body.appendChild(ta);
-      ta.focus(); ta.select();
-      try{ document.execCommand('copy'); }catch(e){}
-      document.body.removeChild(ta);
-    }
-    function flash(btn, txt='✅ Copied!'){
-      const prev=btn.textContent;
-      btn.textContent=txt; btn.style.background='#22c55e';
-      setTimeout(()=>{ btn.textContent=prev; btn.style.background='linear-gradient(90deg,#0072ff,#00c6ff)'; }, 2000);
-    }
-    el.copy.addEventListener('click', ()=>{
-      const header = ['Employee','Job','Location','Time In','Time Out','Break (min)','Hours','Notes'];
-      const lines=[header.join('\t')];
-      el.body.querySelectorAll('tr').forEach(tr=>{
-        const tds=tr.querySelectorAll('td');
-        const row=[
-          tds[0].querySelector('input').value,
-          tds[1].querySelector('input').value,
-          tds[2].querySelector('input').value,
-          tds[3].querySelector('input').value,
-          tds[4].querySelector('input').value,
-          tds[5].querySelector('input').value,
-          tds[6].querySelector('input').value,
-          tds[7].querySelector('input').value,
-        ].map(x=>String(x||'').replace(/\n/g,' '));
-        lines.push(row.join('\t'));
-      });
-      const tsv = lines.join('\n');
-
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(tsv).then(()=>flash(el.copy)).catch(()=>{ copyTextFallback(tsv); flash(el.copy); });
-      }else{
-        copyTextFallback(tsv); flash(el.copy);
-      }
+    document.getElementById('tcInvoice').addEventListener('click', () => {
+      modal.style.display = 'flex';
+      document.getElementById('invoiceContent').innerText =
+        'Invoice generated from your time entries.';
     });
 
-    // ---------- Invoice
-    function openModal(){ el.modal.style.display='flex'; }
-    function closeModal(){ el.modal.style.display='none'; }
-
-    // Load / Save invoice settings
-    function applyInvSettings(){
-      const s=loadInvSettings();
-      el.invBiz.value = s.biz || '';
-      el.invBizAddr.value = s.addr || '';
-      el.invClient.value = s.client || '';
-      el.invClientEmail.value = s.clientEmail || '';
-      el.invNumber.value = s.number || '';
-      el.invDate.value = s.date || toYYYYMMDD(new Date());
-      el.invTax.value = (s.taxPct==null)?'0':s.taxPct;
-      if(s.logo){ el.invLogoPrev.src=s.logo; } else { el.invLogoPrev.removeAttribute('src'); }
-    }
-    function captureInvSettings(){
-      const s={
-        biz: el.invBiz.value.trim(),
-        addr: el.invBizAddr.value.trim(),
-        client: el.invClient.value.trim(),
-        clientEmail: el.invClientEmail.value.trim(),
-        number: el.invNumber.value.trim(),
-        date: el.invDate.value,
-        taxPct: parseFloat(el.invTax.value)||0,
-        logo: el.invLogoPrev.getAttribute('src')||''
-      };
-      saveInvSettings(s);
-      return s;
-    }
-
-    el.invLogo.addEventListener('change', (e)=>{
-      const file=e.target.files && e.target.files[0];
-      if(!file) return;
-      const reader=new FileReader();
-      reader.onload=()=>{ el.invLogoPrev.src=reader.result; captureInvSettings(); };
-      reader.readAsDataURL(file);
-    });
-    [el.invBiz, el.invBizAddr, el.invClient, el.invClientEmail, el.invNumber, el.invDate, el.invTax].forEach(inp=>{
-      inp.addEventListener('input', captureInvSettings);
-      inp.addEventListener('change', captureInvSettings);
+    document.getElementById('closeModal').addEventListener('click', () => {
+      modal.style.display = 'none';
     });
 
-    function buildInvoiceLines(){
-      // Group by Employee + Job + Location for the selected day
-      const rows=getRows();
-      const groups=new Map(); // key: emp|job|loc -> {emp,job,loc,mins}
-      rows.forEach(r=>{
-        const mIn=parseHM(r.in), mOut=parseHM(r.out);
-        if(mIn==null||mOut==null) return;
-        let mins=mOut-mIn; if(mins<0) mins+=1440;
-        mins -= (parseInt(r.break,10)||0); if(mins<0) mins=0;
-        const key=[r.employee||'(No name)', r.job||'(No job)', r.location||'(No location)'].join('|');
-        if(!groups.has(key)) groups.set(key, {emp:r.employee||'(No name)', job:r.job||'(No job)', loc:r.location||'(No location)', mins:0, rate: ''});
-        groups.get(key).mins += mins;
-      });
-      return Array.from(groups.values());
-    }
-
-    function renderInvoice(){
-      const settings = captureInvSettings();
-      const lines = buildInvoiceLines();
-      el.invBody.innerHTML='';
-      let subtotal=0;
-      lines.forEach(item=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td style="padding:8px;border-top:1px solid #f1f5f9">${item.emp}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9">${item.job}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9">${item.loc}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">${fmtHours(item.mins)}</td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">
-            <input class="invRate" type="number" step="0.01" placeholder="0.00" style="width:100px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;text-align:right">
-          </td>
-          <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right"><span class="invAmt">0.00</span></td>
-        `;
-        const rateInput=tr.querySelector('.invRate');
-        const amtSpan=tr.querySelector('.invAmt');
-        function recalc(){
-          const rate=parseFloat(rateInput.value)||0;
-          const amt = rate * (item.mins/60);
-          amtSpan.textContent = money(amt);
-          recalcTotals();
-        }
-        rateInput.addEventListener('input', recalc);
-        el.invBody.appendChild(tr);
-      });
-
-      function recalcTotals(){
-        let sub=0;
-        el.invBody.querySelectorAll('.invAmt').forEach(s=>sub += parseFloat(s.textContent)||0);
-        el.invSub.textContent = money(sub);
-        const taxPct = parseFloat(el.invTax.value)||0;
-        const taxAmt = sub * (taxPct/100);
-        el.invTaxAmt.textContent = money(taxAmt);
-        el.invTotal.textContent = money(sub + taxAmt);
-      }
-      recalcTotals();
-      el.invTax.addEventListener('input', recalcTotals, {once:true}); // avoid stacking
-    }
-
-    function ensureInvoiceDefaults(){
-      const s=loadInvSettings();
-      if(!s.number){
-        s.number = String(Math.floor(1000 + Math.random()*9000));
-      }
-      if(!s.date){
-        s.date = toYYYYMMDD(new Date());
-      }
-      saveInvSettings(s);
-    }
-
-    el.invoiceBtn.addEventListener('click', ()=>{
-      ensureInvoiceDefaults();
-      applyInvSettings();
-      renderInvoice();
-      openModal();
-    });
-    el.close.addEventListener('click', closeModal);
-
-    // Email Invoice
-    el.email.addEventListener('click', ()=>{
-      captureInvSettings();
-      // Build body summary
-      let body = `Invoice #: ${el.invNumber.value}\nDate: ${el.invDate.value}\nBusiness: ${el.invBiz.value}\n\n`;
-      el.invBody.querySelectorAll('tr').forEach(tr=>{
-        const tds = tr.querySelectorAll('td');
-        const emp = tds[0].innerText.trim();
-        const job = tds[1].innerText.trim();
-        const loc = tds[2].innerText.trim();
-        const hrs = tds[3].innerText.trim();
-        const rate = tr.querySelector('.invRate')?.value || '0.00';
-        const amt = tr.querySelector('.invAmt')?.textContent || '0.00';
-        body += `${emp} | ${job} @ ${loc} — ${hrs}h × $${rate} = $${amt}\n`;
-      });
-      body += `\nSubtotal: $${el.invSub.textContent}\n`;
-      const taxPct=parseFloat(el.invTax.value)||0;
-      body += `Tax (${taxPct}%): $${el.invTaxAmt.textContent}\n`;
-      body += `Total: $${el.invTotal.textContent}\n\nThank you,\n${el.invBiz.value}`;
-
-      const subject = encodeURIComponent(`Invoice ${el.invNumber.value}`);
-      const mailto = `mailto:${encodeURIComponent(el.invClientEmail.value||'')}?subject=${subject}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
-    });
-
-    // Download PDF
-    el.download.addEventListener('click', ()=>{
-      captureInvSettings();
-      const modalBox = el.modal.querySelector('.box');
+    document.getElementById('tcDownload').addEventListener('click', () => {
       const opt = {
         margin: 0.5,
-        filename: (el.invNumber.value || 'invoice') + '.pdf',
+        filename: 'invoice.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
       };
-      html2pdf().set(opt).from(modalBox).save();
+      html2pdf().set(opt).from(invoiceBox).save();
     });
-
-    // Print
-    el.print.addEventListener('click', ()=>{
-      captureInvSettings();
-      window.print();
-    });
-
-    // ---------- Init
-    loadDate(new Date());
-  })();
   </script>
-
-  <!-- (Optional) Minimal print styling for the invoice modal -->
-  <style>
-    @media print {
-      #xtv-timeclock { background:#fff; }
-      #xtv-timeclock .modal { position:static; background:#fff; display:block !important; padding:0; }
-      #xtv-timeclock .modal .actions, #xtv-timeclock .bar, #xtv-timeclock .kicker, #xtv-timeclock h3:not(:first-child) { display:none !important; }
-      #xtv-timeclock .modal .box { width:auto; max-height:none; overflow:visible; box-shadow:none; border:none; padding:0; }
-    }
-  </style>
-
-  <!-- Schema (basic) -->
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"SoftwareApplication",
-    "name":"XTV Time Clock + Invoice Builder",
-    "applicationCategory":"BusinessApplication",
-    "operatingSystem":"WebBrowser",
-    "description":"Track daily hours by employee, job, and location. Copy to Excel, view employee totals, and generate printable or downloadable PDF invoices. Data persists locally.",
-    "softwareVersion":"1.0",
-    "offers":{"@type":"Offer","price":"0","priceCurrency":"USD","availability":"https://schema.org/InStock"},
-    "publisher":{"@type":"Organization","name":"Xecute The Vision"}
-  }
-  </script>
-</section>
+</body>
+</html>
