@@ -1,113 +1,733 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>XTV Time Clock + Invoice Builder</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XTV Time Clock + Invoice (Single Page)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- ✅ iframe buster: ensures app runs top-level (not inside GoDaddy iframe) -->
-  <script>
-    (function () {
-      try {
-        if (window.top !== window.self) {
-          window.top.location.href = window.location.href;
-        }
-      } catch (e) {
-        window.open(window.location.href, '_blank', 'noopener,noreferrer');
-      }
-    })();
-  </script>
+<!-- html2pdf for PDF download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+  integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg=="
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-  <!-- ✅ include html2pdf -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-    integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg=="
-    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+:root{
+  --primary:#0f172a; --muted:#64748b; --blue1:#0072ff; --blue2:#00c6ff;
+  --border:#e5e7eb; --soft:#f1f5f9; --soft2:#f9fafb;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'Inter',sans-serif;background:#fff;color:var(--primary);
+  padding:28px 16px;
+}
+.kicker{
+  display:inline-block;padding:10px 20px;border-radius:999px;
+  background:linear-gradient(135deg,var(--blue1),var(--blue2));
+  color:#fff;font-weight:800;font-size:20px;margin:0 0 10px;
+}
+h1{font-size:24px;margin:6px 0 12px;font-weight:800}
+.muted{color:var(--muted);font-size:14px}
+.wrap{max-width:1200px;margin:0 auto}
 
-  <style>
-    body { font-family:'Inter',sans-serif; background:#fff; color:#0f172a; margin:0; padding:0; }
-    .kicker { display:inline-block; background:linear-gradient(135deg,#0072ff,#00c6ff); color:#fff;
-      font-weight:800; padding:10px 20px; border-radius:999px; margin:20px 0; }
-    .btn { background:linear-gradient(90deg,#0072ff,#00c6ff); color:#fff; border:none;
-      border-radius:999px; padding:10px 16px; font-weight:700; cursor:pointer; margin:5px; }
-    .btn:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.12); }
-    .wrap { max-width:1200px; margin:0 auto; padding:20px; }
-    table { border-collapse:collapse; width:100%; }
-    th, td { border:1px solid #e5e7eb; padding:8px; text-align:left; }
-    th { background:#f1f5f9; }
-    .modal { position:fixed; inset:0; background:rgba(15,23,42,.6); display:none;
-      align-items:center; justify-content:center; z-index:9999; padding:20px; }
-    .modal .box { background:#fff; padding:20px; border-radius:16px; max-width:900px; width:95%; }
-    @media print {
-      body * { visibility:hidden; }
-      .modal, .modal * { visibility:visible; }
-      .modal { position:static; background:#fff; }
-    }
-  </style>
+/* Controls */
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:10px 0 14px}
+.btn{
+  background:linear-gradient(90deg,var(--blue1),var(--blue2));color:#fff;border:none;border-radius:999px;
+  padding:8px 14px;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s;font-size:14px
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.12)}
+.btn.alt{background:#e2e8f0;color:var(--primary)}
+.btn.good{background:#22c55e}
+.btn.warn{background:#f59e0b}
+input,select,textarea{
+  border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:14px;outline:none
+}
+input:focus,textarea:focus{box-shadow:0 0 0 2px #93c5fd;border-color:#60a5fa}
+
+/* Table */
+.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:16px}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:980px}
+thead th{position:sticky;top:0;background:var(--soft);border-bottom:1px solid var(--border);padding:10px;text-align:center}
+tbody td{border-top:1px solid var(--soft);padding:8px;vertical-align:middle}
+td .rowBtns{display:flex;flex-wrap:wrap;gap:6px}
+td .mini{padding:6px 10px;border-radius:10px;font-size:12px;border:none;color:#fff;cursor:pointer}
+.mini.blue{background:linear-gradient(90deg,var(--blue1),var(--blue2))}
+.mini.gray{background:#cbd5e1;color:#0f172a}
+.mini.red{background:#ef4444}
+.del{background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:700}
+.del:hover{background:#dc2626}
+
+/* Totals */
+.totals{margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.card{border:1px solid var(--border);border-radius:14px;padding:12px;background:var(--soft2);text-align:left}
+.card h3{margin:0 0 6px;font-size:16px;font-weight:800}
+.row{display:flex;justify-content:space-between;font-size:13px;color:#334155}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:9999}
+.modal.open{display:flex}
+.box{width:min(900px,95vw);background:#fff;border-radius:16px;padding:16px 16px 20px;max-height:90vh;overflow:auto}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+
+/* Invoice (single page style) */
+.invoice{
+  border:1px solid var(--border);border-radius:16px;padding:18px;margin-top:10px
+}
+.inv-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.inv-left{display:flex;align-items:center;gap:12px}
+.inv-logo{width:80px;height:80px;border:1px dashed var(--border);border-radius:12px;object-fit:contain;background:#fff}
+.inv-title{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--blue1),var(--blue2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.inv-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.inv-meta .field{display:flex;flex-direction:column;gap:4px}
+.inv-meta label{font-size:12px;color:var(--muted)}
+.inv-meta input, .inv-meta textarea{width:100%}
+.inv-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.inv-two .stack{display:flex;flex-direction:column;gap:6px}
+.inv-lines{margin-top:12px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.inv-lines table{width:100%;border-collapse:collapse}
+.inv-lines thead th{background:var(--soft);padding:10px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}
+.inv-lines tbody td{padding:8px;border-top:1px solid var(--soft)}
+.inv-sum{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.inv-sum .pill{background:var(--soft);border-radius:10px;padding:8px 10px;font-weight:700}
+.rateInput{width:110px;text-align:right}
+
+@media(max-width:980px){ .totals{grid-template-columns:1fr} .inv-meta{grid-template-columns:1fr} .inv-two{grid-template-columns:1fr} }
+@media print{
+  body{padding:0}
+  .modal{position:static;background:#fff;display:block!important;padding:0}
+  .actions, .bar, .kicker, h1{display:none!important}
+  .box{width:auto;max-height:none;overflow:visible;border:none;padding:0}
+}
+</style>
 </head>
 <body>
 
-  <div class="wrap">
-    <div class="kicker">XTV Time Clock + Invoice Builder</div>
-    <h3>Track hours by Employee, Job & Location — then invoice in one click</h3>
+<section class="wrap" id="app">
+  <div class="kicker">XTV Time Clock + Invoice</div>
+  <h1>Track Hours by Employee, Job & Location — then Generate a Clean Invoice</h1>
+  <p class="muted">Use the date controls to switch days. Entries auto-save per day in this browser.</p>
 
-    <div>
-      <button id="tcAddRow" class="btn">➕ Add Row</button>
-      <button id="tcInvoice" class="btn">🧾 Generate Invoice</button>
-      <button id="tcDownload" class="btn">⬇️ Download PDF</button>
+  <!-- Top Controls -->
+  <div class="bar">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn alt" id="prevDay">&larr; Prev Day</button>
+      <input type="date" id="theDate">
+      <button class="btn alt" id="nextDay">Next Day &rarr;</button>
     </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" id="addRow">➕ Add Row</button>
+      <button class="btn" id="copyExcel">📋 Copy to Excel</button>
+      <button class="btn" id="openInvoice">🧾 Generate Invoice</button>
+    </div>
+  </div>
 
-    <table id="tcTable">
+  <!-- Table -->
+  <div class="table-wrap">
+    <table aria-label="Time entries">
       <thead>
-        <tr><th>Employee</th><th>Job</th><th>Location</th><th>Hours</th></tr>
+        <tr>
+          <th>Employee</th>
+          <th>Job</th>
+          <th>Location</th>
+          <th>Time In</th>
+          <th>Time Out</th>
+          <th>Break (min)</th>
+          <th>Hours</th>
+          <th>Notes</th>
+          <th>Actions</th>
+          <th></th>
+        </tr>
       </thead>
-      <tbody id="tcBody"></tbody>
+      <tbody id="rows"></tbody>
     </table>
   </div>
 
-  <!-- ✅ Invoice Modal -->
-  <div class="modal" id="tcModal">
-    <div class="box" id="invoiceBox">
-      <h2>Invoice</h2>
-      <p id="invoiceContent">Example invoice details will appear here...</p>
-      <button id="closeModal" class="btn">Close</button>
+  <!-- Totals -->
+  <div style="margin-top:14px;">
+    <h1 style="font-size:18px;margin:0 0 8px;">Daily Totals by Employee</h1>
+    <div class="totals" id="totals"></div>
+  </div>
+</section>
+
+<!-- Invoice Modal -->
+<div class="modal" id="modal">
+  <div class="box">
+    <div class="actions" style="margin-bottom:10px;">
+      <button class="btn alt" id="closeModal">Close</button>
+      <button class="btn" id="emailInv">✉️ Email</button>
+      <button class="btn" id="pdfInv">⬇️ Download PDF</button>
+      <button class="btn" id="printInv">🖨️ Print</button>
+    </div>
+
+    <!-- Single-page Invoice -->
+    <div id="invoice" class="invoice">
+      <div class="inv-header">
+        <div class="inv-left">
+          <img id="invLogoPrev" class="inv-logo" alt="Logo">
+          <div>
+            <div class="inv-title">INVOICE</div>
+            <div style="font-size:12px;color:var(--muted)">Generated by XTV Time Clock</div>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Logo (optional)</label>
+          <input type="file" id="invLogo" accept="image/*">
+        </div>
+      </div>
+
+      <div class="inv-meta">
+        <div class="field">
+          <label>Business Name</label>
+          <input id="bizName" placeholder="Your business">
+        </div>
+        <div class="field">
+          <label>Invoice #</label>
+          <input id="invNumber" placeholder="e.g., 1001">
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input id="invDate" type="date">
+        </div>
+        <div class="field" style="grid-column:1 / -1">
+          <label>Business Address</label>
+          <textarea id="bizAddr" rows="2" placeholder="Street, City, State, ZIP"></textarea>
+        </div>
+      </div>
+
+      <div class="inv-two">
+        <div class="stack">
+          <label style="font-size:12px;color:var(--muted)">Bill To (Client)</label>
+          <input id="clientName" placeholder="Client / Company">
+        </div>
+        <div class="stack">
+          <label style="font-size:12px;color:var(--muted)">Client Email (for Email Invoice)</label>
+          <input id="clientEmail" type="email" placeholder="client@email.com">
+        </div>
+      </div>
+
+      <div class="inv-lines">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Job</th>
+              <th>Location</th>
+              <th style="text-align:right;">Hours</th>
+              <th style="text-align:right;">Rate</th>
+              <th style="text-align:right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+
+      <div class="inv-two" style="margin-top:10px;">
+        <div></div>
+        <div class="stack">
+          <label style="font-size:12px;color:var(--muted)">Tax %</label>
+          <input id="taxPct" type="number" step="0.01" placeholder="0">
+        </div>
+      </div>
+
+      <div class="inv-sum">
+        <div class="pill">Subtotal: $<span id="subTotal">0.00</span></div>
+        <div class="pill">Tax: $<span id="taxAmt">0.00</span></div>
+        <div class="pill">Total: $<span id="grandTotal">0.00</span></div>
+      </div>
     </div>
   </div>
+</div>
 
-  <script>
-    const body = document.getElementById('tcBody');
-    const modal = document.getElementById('tcModal');
-    const invoiceBox = document.getElementById('invoiceBox');
+<script>
+/* -------- IFRAME BUSTER (so PDF works when linked from GoDaddy) -------- */
+(function(){
+  try{
+    if (window.top !== window.self) {
+      window.top.location = window.location.href;
+    }
+  }catch(e){
+    // If cross-origin blocks access, open in new tab as fallback:
+    window.open(window.location.href, '_blank', 'noopener');
+  }
+})();
 
-    document.getElementById('tcAddRow').addEventListener('click', () => {
-      const tr = document.createElement('tr');
+/* -------------------- Time Clock + Invoice Logic -------------------- */
+(function(){
+  const LS_ENTRIES_KEY = 'xtv_tc_entries_v2';
+  const LS_INV_KEY = 'xtv_tc_invoice_settings_v2';
+
+  const el = {
+    date: document.getElementById('theDate'),
+    prev: document.getElementById('prevDay'),
+    next: document.getElementById('nextDay'),
+    add: document.getElementById('addRow'),
+    copy: document.getElementById('copyExcel'),
+    rows: document.getElementById('rows'),
+    totals: document.getElementById('totals'),
+    openInvoice: document.getElementById('openInvoice'),
+
+    modal: document.getElementById('modal'),
+    closeModal: document.getElementById('closeModal'),
+    pdfInv: document.getElementById('pdfInv'),
+    printInv: document.getElementById('printInv'),
+    emailInv: document.getElementById('emailInv'),
+    invoice: document.getElementById('invoice'),
+
+    invLogo: document.getElementById('invLogo'),
+    invLogoPrev: document.getElementById('invLogoPrev'),
+    bizName: document.getElementById('bizName'),
+    bizAddr: document.getElementById('bizAddr'),
+    invNumber: document.getElementById('invNumber'),
+    invDate: document.getElementById('invDate'),
+    clientName: document.getElementById('clientName'),
+    clientEmail: document.getElementById('clientEmail'),
+    taxPct: document.getElementById('taxPct'),
+    invBody: document.getElementById('invBody'),
+    subTotal: document.getElementById('subTotal'),
+    taxAmt: document.getElementById('taxAmt'),
+    grandTotal: document.getElementById('grandTotal')
+  };
+
+  // ---------- Utils
+  function toYYYYMMDD(d){ const t=new Date(d); const m=('0'+(t.getMonth()+1)).slice(-2), da=('0'+t.getDate()).slice(-2); return t.getFullYear()+'-'+m+'-'+da; }
+  function fmt2(n){ return n<10?('0'+n):String(n); }
+  function nowHM(){ const d=new Date(); return fmt2(d.getHours())+':'+fmt2(d.getMinutes()); }
+  function parseHM(v){
+    if(!v) return null;
+    const m=v.match(/^(\d{1,2}):(\d{2})$/);
+    if(!m) return null;
+    return (+m[1])*60 + (+m[2]);
+  }
+  function hrs(mins){ if(!mins||mins<0) mins=0; return (mins/60).toFixed(2); }
+  function money(n){ return (Math.round((+n||0)*100)/100).toFixed(2); }
+
+  // ---------- Storage helpers
+  function loadAll(){ try{return JSON.parse(localStorage.getItem(LS_ENTRIES_KEY)||'{}')}catch(e){return{}} }
+  function saveAll(obj){ localStorage.setItem(LS_ENTRIES_KEY, JSON.stringify(obj)); }
+  function loadDay(date){ const all=loadAll(); return Array.isArray(all[date]) ? all[date] : []; }
+  function saveDay(date, rows){ const all=loadAll(); all[date]=rows; saveAll(all); }
+
+  function loadInv(){ try{return JSON.parse(localStorage.getItem(LS_INV_KEY)||'{}')}catch(e){return{}} }
+  function saveInv(s){ localStorage.setItem(LS_INV_KEY, JSON.stringify(s)); }
+
+  // ---------- Row model
+  function newRow(){
+    return {
+      employee:'', job:'', location:'',
+      timeIn:'', timeOut:'',
+      breakMinutes:0,
+      notes:'',
+      // live state (not required to persist, but we can)
+      clockedIn:false,
+      breakActive:false,
+      breakStartedAt:null  // minutes since midnight or null
+    };
+  }
+
+  // ---------- Render
+  function renderRows(rows){
+    el.rows.innerHTML = '';
+    rows.forEach((r, idx)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><input placeholder="Employee" value="${r.employee||''}"></td>
+        <td><input placeholder="Job" value="${r.job||''}"></td>
+        <td><input placeholder="Location" value="${r.location||''}"></td>
+        <td>
+          <div class="rowBtns">
+            <input placeholder="09:00" value="${r.timeIn||''}" style="min-width:92px">
+            <button class="mini blue" data-act="cin">Clock In</button>
+          </div>
+        </td>
+        <td>
+          <div class="rowBtns">
+            <input placeholder="17:00" value="${r.timeOut||''}" style="min-width:92px">
+            <button class="mini blue" data-act="cout">Clock Out</button>
+          </div>
+        </td>
+        <td>
+          <div class="rowBtns">
+            <input type="number" min="0" step="1" placeholder="0" value="${r.breakMinutes||0}" style="width:90px">
+            <button class="mini gray" data-act="bstart">Start Break</button>
+            <button class="mini gray" data-act="bend">End Break</button>
+          </div>
+        </td>
+        <td><input data-hours readonly tabindex="-1" style="width:86px;background:#f8fafc"></td>
+        <td><input placeholder="Notes" value="${r.notes||''}"></td>
+        <td style="min-width:240px">
+          <div class="rowBtns">
+            <button class="mini ${r.clockedIn?'good':'blue'}" data-act="toggleCin">${r.clockedIn?'Clocked In':'Not In'}</button>
+            <button class="mini ${r.breakActive?'warn':'gray'}" data-act="toggleBreak">${r.breakActive?'On Break':'Not Breaking'}</button>
+          </div>
+        </td>
+        <td><button class="del" data-act="del">✖</button></td>
+      `;
+      // Wire
+      const tds=tr.querySelectorAll('td');
+      const emp=tds[0].querySelector('input');
+      const job=tds[1].querySelector('input');
+      const loc=tds[2].querySelector('input');
+      const tin=tds[3].querySelector('input');
+      const cinBtn=tds[3].querySelector('[data-act="cin"]');
+      const tout=tds[4].querySelector('input');
+      const coutBtn=tds[4].querySelector('[data-act="cout"]');
+      const brkIn=tds[5].querySelector('input');
+      const bStart=tds[5].querySelector('[data-act="bstart"]');
+      const bEnd=tds[5].querySelector('[data-act="bend"]');
+      const hoursBox=tds[6].querySelector('[data-hours]');
+      const notes=tds[7].querySelector('input');
+      const toggleCin=tds[8].querySelector('[data-act="toggleCin"]');
+      const toggleBreak=tds[8].querySelector('[data-act="toggleBreak"]');
+      const delBtn=tds[9].querySelector('[data-act="del"]');
+
+      function sync(){
+        const all = loadDay(el.date.value);
+        all[idx] = {
+          employee: emp.value.trim(),
+          job: job.value.trim(),
+          location: loc.value.trim(),
+          timeIn: tin.value.trim(),
+          timeOut: tout.value.trim(),
+          breakMinutes: +brkIn.value||0,
+          notes: notes.value.trim(),
+          clockedIn: r.clockedIn||false,
+          breakActive: r.breakActive||false,
+          breakStartedAt: r.breakStartedAt||null
+        };
+        saveDay(el.date.value, all);
+        recalcRow(hoursBox, all[idx]);
+        renderTotals();
+      }
+
+      // direct inputs
+      [emp,job,loc,tin,tout,brkIn,notes].forEach(i=>i.addEventListener('input', sync));
+
+      // buttons
+      cinBtn.addEventListener('click', ()=>{
+        tin.value = nowHM(); r.timeIn=tin.value; r.clockedIn=true; toggleCin.classList.remove('blue'); toggleCin.classList.add('good'); toggleCin.textContent='Clocked In'; sync();
+      });
+      coutBtn.addEventListener('click', ()=>{
+        tout.value = nowHM(); r.timeOut=tout.value; r.clockedIn=false; toggleCin.classList.remove('good'); toggleCin.classList.add('blue'); toggleCin.textContent='Not In'; sync();
+      });
+      bStart.addEventListener('click', ()=>{
+        if(r.breakActive) return;
+        const minsNow = parseHM(nowHM());
+        r.breakActive = true; r.breakStartedAt = minsNow;
+        toggleBreak.classList.remove('gray'); toggleBreak.classList.add('warn'); toggleBreak.textContent='On Break';
+        sync();
+      });
+      bEnd.addEventListener('click', ()=>{
+        if(!r.breakActive) return;
+        const minsNow = parseHM(nowHM());
+        if(r.breakStartedAt!=null && minsNow!=null){
+          let delta = minsNow - r.breakStartedAt;
+          if(delta<0) delta += 1440;
+          const tot = (+brkIn.value||0) + Math.max(0, delta);
+          brkIn.value = tot;
+          r.breakMinutes = tot;
+        }
+        r.breakActive=false; r.breakStartedAt=null;
+        toggleBreak.classList.remove('warn'); toggleBreak.classList.add('gray'); toggleBreak.textContent='Not Breaking';
+        sync();
+      });
+      toggleCin.addEventListener('click', ()=>{
+        // quick toggle state without setting exact time
+        r.clockedIn = !r.clockedIn;
+        if(r.clockedIn){ toggleCin.classList.remove('blue'); toggleCin.classList.add('good'); toggleCin.textContent='Clocked In'; }
+        else{ toggleCin.classList.remove('good'); toggleCin.classList.add('blue'); toggleCin.textContent='Not In'; }
+        sync();
+      });
+      toggleBreak.addEventListener('click', ()=>{
+        if(!r.breakActive){
+          bStart.click();
+        }else{
+          bEnd.click();
+        }
+      });
+      delBtn.addEventListener('click', ()=>{
+        const all=loadDay(el.date.value).filter((_,i)=>i!==idx);
+        saveDay(el.date.value, all);
+        drawDay();
+      });
+
+      // initial compute
+      recalcRow(hoursBox, r);
+      el.rows.appendChild(tr);
+    });
+    if(rows.length===0){
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td colspan="10" style="text-align:center;color:var(--muted);padding:14px">No entries yet — click “Add Row”.</td>`;
+      el.rows.appendChild(tr);
+    }
+  }
+
+  function recalcRow(hoursBox, r){
+    const mi=parseHM(r.timeIn), mo=parseHM(r.timeOut);
+    let mins = (mi!=null && mo!=null) ? (mo - mi) : 0;
+    if(mins<0) mins += 1440;
+    mins -= (+r.breakMinutes||0);
+    if(mins<0) mins=0;
+    hoursBox.value = hrs(mins);
+  }
+
+  function drawTotals(){
+    const rows=loadDay(el.date.value);
+    const map=new Map();
+    rows.forEach(r=>{
+      const mi=parseHM(r.timeIn), mo=parseHM(r.timeOut);
+      if(mi==null||mo==null) return;
+      let mins=mo - mi; if(mins<0) mins+=1440;
+      mins -= (+r.breakMinutes||0); if(mins<0) mins=0;
+      const key = (r.employee||'(No name)').trim();
+      if(!map.has(key)) map.set(key, []);
+      map.get(key).push({job:r.job||'(no job)', loc:r.location||'(no location)', mins});
+    });
+    el.totals.innerHTML='';
+    if(map.size===0){
+      const none=document.createElement('div');
+      none.className='card';
+      none.innerHTML='<h3>No entries</h3><div class="row"><div>Add rows to see totals.</div><div></div></div>';
+      el.totals.appendChild(none);
+      return;
+    }
+    for(const [emp, items] of map.entries()){
+      const totalM = items.reduce((a,b)=>a+b.mins,0);
+      const card=document.createElement('div');
+      card.className='card';
+      card.innerHTML=`<h3>${emp}</h3>
+        <div class="row"><div>Total Hours</div><div><strong>${hrs(totalM)}</strong></div></div>
+        ${items.map(x=>`<div class="row"><div>${x.job} @ ${x.loc}</div><div>${hrs(x.mins)} h</div></div>`).join('')}
+      `;
+      el.totals.appendChild(card);
+    }
+  }
+
+  function drawDay(){
+    const rows = loadDay(el.date.value);
+    if(rows.length===0){ rows.push(newRow()); saveDay(el.date.value, rows); }
+    renderRows(rows);
+    drawTotals();
+  }
+
+  // ---------- Date controls
+  function loadDate(d){
+    el.date.value = toYYYYMMDD(d||new Date());
+    drawDay();
+  }
+  el.prev.addEventListener('click', ()=>{ const d=new Date(el.date.value); d.setDate(d.getDate()-1); loadDate(d); });
+  el.next.addEventListener('click', ()=>{ const d=new Date(el.date.value); d.setDate(d.getDate()+1); loadDate(d); });
+  el.date.addEventListener('change', ()=>loadDate(new Date(el.date.value)));
+
+  // ---------- Add Row
+  el.add.addEventListener('click', ()=>{
+    const rows=loadDay(el.date.value);
+    rows.push(newRow());
+    saveDay(el.date.value, rows);
+    drawDay();
+  });
+
+  // ---------- Copy to Excel (TSV) with fallback
+  function copyFallback(text){
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.top='-9999px';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+  function flash(btn,msg='✅ Copied!'){
+    const old=btn.textContent; btn.textContent=msg; btn.classList.add('good');
+    setTimeout(()=>{ btn.textContent=old; btn.classList.remove('good'); },2000);
+  }
+  el.copy.addEventListener('click', ()=>{
+    const header=['Employee','Job','Location','Time In','Time Out','Break (min)','Hours','Notes'];
+    const lines=[header.join('\t')];
+    el.rows.querySelectorAll('tr').forEach(tr=>{
+      const tds=tr.querySelectorAll('td');
+      if(!tds[0] || !tds[6]) return;
+      const row=[
+        tds[0].querySelector('input')?.value||'',
+        tds[1].querySelector('input')?.value||'',
+        tds[2].querySelector('input')?.value||'',
+        tds[3].querySelector('input')?.value||'',
+        tds[4].querySelector('input')?.value||'',
+        tds[5].querySelector('input')?.value||'',
+        tds[6].querySelector('input')?.value||'',
+        tds[7].querySelector('input')?.value||'',
+      ].map(s=>String(s).replace(/\n/g,' '));
+      lines.push(row.join('\t'));
+    });
+    const tsv=lines.join('\n');
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(tsv).then(()=>flash(el.copy)).catch(()=>{ copyFallback(tsv); flash(el.copy); });
+    }else{
+      copyFallback(tsv); flash(el.copy);
+    }
+  });
+
+  // ---------- Invoice
+  function applyInvSettings(){
+    const s=loadInv();
+    el.bizName.value = s.biz||'';
+    el.bizAddr.value = s.addr||'';
+    el.clientName.value = s.client||'';
+    el.clientEmail.value = s.clientEmail||'';
+    el.invNumber.value = s.num||'';
+    el.invDate.value = s.date||toYYYYMMDD(new Date());
+    el.taxPct.value = (s.taxPct==null)?'0':s.taxPct;
+    if(s.logo){ el.invLogoPrev.src = s.logo; } else { el.invLogoPrev.removeAttribute('src'); }
+  }
+  function captureInvSettings(){
+    const s={
+      biz: el.bizName.value.trim(),
+      addr: el.bizAddr.value.trim(),
+      client: el.clientName.value.trim(),
+      clientEmail: el.clientEmail.value.trim(),
+      num: el.invNumber.value.trim(),
+      date: el.invDate.value,
+      taxPct: parseFloat(el.taxPct.value)||0,
+      logo: el.invLogoPrev.getAttribute('src')||''
+    };
+    saveInv(s); return s;
+  }
+
+  el.invLogo.addEventListener('change', (e)=>{
+    const f=e.target.files && e.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=()=>{ el.invLogoPrev.src=reader.result; captureInvSettings(); };
+    reader.readAsDataURL(f);
+  });
+  [el.bizName, el.bizAddr, el.clientName, el.clientEmail, el.invNumber, el.invDate, el.taxPct]
+    .forEach(x=>{ x.addEventListener('input', captureInvSettings); x.addEventListener('change', captureInvSettings); });
+
+  function buildInvoiceLines(){
+    const rows=loadDay(el.date.value);
+    const groups=new Map(); // key emp|job|loc
+    rows.forEach(r=>{
+      const mi=parseHM(r.timeIn), mo=parseHM(r.timeOut);
+      if(mi==null||mo==null) return;
+      let mins=mo-mi; if(mins<0) mins+=1440;
+      mins -= (+r.breakMinutes||0); if(mins<0) mins=0;
+      const key=[r.employee||'(No name)', r.job||'(No job)', r.location||'(No location)'].join('|');
+      if(!groups.has(key)) groups.set(key,{emp:r.employee||'(No name)',job:r.job||'(No job)',loc:r.location||'(No location)',mins:0,rate:0});
+      groups.get(key).mins += mins;
+    });
+    return Array.from(groups.values());
+  }
+
+  function renderInvoice(){
+    el.invBody.innerHTML='';
+    const lines = buildInvoiceLines();
+    lines.forEach(line=>{
+      const tr=document.createElement('tr');
       tr.innerHTML = `
-        <td contenteditable="true">John Doe</td>
-        <td contenteditable="true">Consulting</td>
-        <td contenteditable="true">NY</td>
-        <td contenteditable="true">8</td>`;
-      body.appendChild(tr);
+        <td>${line.emp}</td>
+        <td>${line.job}</td>
+        <td>${line.loc}</td>
+        <td style="text-align:right;">${hrs(line.mins)}</td>
+        <td style="text-align:right;"><input class="rateInput" type="number" step="0.01" placeholder="0.00"></td>
+        <td style="text-align:right;"><span class="amt">0.00</span></td>
+      `;
+      const rateInput=tr.querySelector('.rateInput');
+      const amt=tr.querySelector('.amt');
+      function recalc(){
+        const rate=parseFloat(rateInput.value)||0;
+        amt.textContent = money(rate * (line.mins/60));
+        recalcTotals();
+      }
+      rateInput.addEventListener('input', recalc);
+      el.invBody.appendChild(tr);
     });
+    function recalcTotals(){
+      let sub=0; el.invBody.querySelectorAll('.amt').forEach(s=> sub += parseFloat(s.textContent)||0 );
+      el.subTotal.textContent = money(sub);
+      const t = parseFloat(el.taxPct.value)||0;
+      const tax = sub*(t/100);
+      el.taxAmt.textContent = money(tax);
+      el.grandTotal.textContent = money(sub+tax);
+    }
+    recalcTotals();
+    el.taxPct.addEventListener('input', recalcTotals, {once:true});
+  }
 
-    document.getElementById('tcInvoice').addEventListener('click', () => {
-      modal.style.display = 'flex';
-      document.getElementById('invoiceContent').innerText =
-        'Invoice generated from your time entries.';
-    });
+  function openModal(){
+    // Defaults for invoice if empty
+    const inv = loadInv();
+    if(!inv.num){ inv.num = String(Math.floor(1000 + Math.random()*9000)); }
+    if(!inv.date){ inv.date = toYYYYMMDD(new Date()); }
+    saveInv(inv);
 
-    document.getElementById('closeModal').addEventListener('click', () => {
-      modal.style.display = 'none';
-    });
+    applyInvSettings();
+    renderInvoice();
+    el.modal.classList.add('open');
+  }
+  function closeModal(){ el.modal.classList.remove('open'); }
 
-    document.getElementById('tcDownload').addEventListener('click', () => {
-      const opt = {
-        margin: 0.5,
-        filename: 'invoice.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-      html2pdf().set(opt).from(invoiceBox).save();
+  el.openInvoice.addEventListener('click', ()=>openModal());
+  el.closeModal.addEventListener('click', ()=>closeModal());
+
+  // Email
+  el.emailInv.addEventListener('click', ()=>{
+    captureInvSettings();
+    let body = `Invoice #: ${el.invNumber.value}\nDate: ${el.invDate.value}\nBusiness: ${el.bizName.value}\n\n`;
+    el.invBody.querySelectorAll('tr').forEach(tr=>{
+      const td=tr.querySelectorAll('td');
+      const emp=td[0].innerText.trim();
+      const job=td[1].innerText.trim();
+      const loc=td[2].innerText.trim();
+      const hours=td[3].innerText.trim();
+      const rate=tr.querySelector('.rateInput')?.value||'0.00';
+      const amt=tr.querySelector('.amt')?.textContent||'0.00';
+      body += `${emp} | ${job} @ ${loc} — ${hours}h × $${rate} = $${amt}\n`;
     });
-  </script>
+    body += `\nSubtotal: $${el.subTotal.textContent}\nTax (${el.taxPct.value||0}%): $${el.taxAmt.textContent}\nTotal: $${el.grandTotal.textContent}\n\nThank you,\n${el.bizName.value}`;
+    const subject = encodeURIComponent(`Invoice ${el.invNumber.value}`);
+    const mailto = `mailto:${encodeURIComponent(el.clientEmail.value||'')}?subject=${subject}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+  });
+
+  // PDF
+  el.pdfInv.addEventListener('click', ()=>{
+    captureInvSettings();
+    const opt = {
+      margin: 0.5,
+      filename: (el.invNumber.value||'invoice')+'.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(el.invoice).save();
+  });
+
+  // Print
+  el.printInv.addEventListener('click', ()=>{
+    captureInvSettings();
+    window.print();
+  });
+
+  // ---------- Init
+  (function init(){
+    // set today
+    el.date.value = toYYYYMMDD(new Date());
+    drawDay();
+  })();
+})();
+</script>
+
+<!-- Minimal schema -->
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"SoftwareApplication",
+  "name":"XTV Time Clock + Invoice",
+  "applicationCategory":"BusinessApplication",
+  "operatingSystem":"WebBrowser",
+  "description":"Track daily hours by employee, job and location. Start/End breaks, copy to Excel, and generate single-page invoices with logo upload and PDF download.",
+  "softwareVersion":"2.0",
+  "offers":{"@type":"Offer","price":"0","priceCurrency":"USD","availability":"https://schema.org/InStock"},
+  "publisher":{"@type":"Organization","name":"Xecute The Vision"}
+}
+</script>
 </body>
 </html>
