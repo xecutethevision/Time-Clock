@@ -45,7 +45,17 @@
     #xtv-timeclock .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     #xtv-timeclock .stack{display:flex;flex-direction:column;gap:6px}
     /* Smaller logo */
-    #xtv-timeclock .logoPreview{width:40px;height:40px;object-fit:contain;border:1px dashed #e5e7eb;border-radius:12px;background:#f8fafc}
+#xtv-timeclock .logoPreview{
+  width:100px;       /* small width */
+  height:auto;       /* auto height for aspect ratio */
+  max-height:50px;   /* never taller than this */
+  object-fit:contain;
+  border:1px dashed #e5e7eb;
+  border-radius:8px;
+  background:#f8fafc;
+  margin-top:4px;
+  display:block;
+}
     #xtv-timeclock .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px}
     #xtv-timeclock .sum{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
     #xtv-timeclock .sum div{background:#f1f5f9;border-radius:10px;padding:8px 10px;font-weight:700}
@@ -770,5 +780,6 @@ const header = ['Date','Type','Employee','Job','Location','AM In','AM Out','PM I
   }
   </script>
 </section>
+
 
 
