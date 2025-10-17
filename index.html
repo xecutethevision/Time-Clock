@@ -1,6 +1,6 @@
 <section id="xtv-timeclock" style="font-family:'Inter',sans-serif;background:#fff;color:#0f172a;padding:28px 16px;">
 
-  <!-- html2pdf (optional; falls back to Print if blocked) -->
+  <!-- html2pdf (PDF download; has print fallback if blocked by host) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
     integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -16,21 +16,22 @@
     #xtv-timeclock .btn{background:linear-gradient(90deg,#0072ff,#00c6ff);color:#fff;border:none;border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s;font-size:14px}
     #xtv-timeclock .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.12)}
     #xtv-timeclock .btn.alt{background:#e2e8f0;color:#0f172a}
-    #xtv-timeclock input, #xtv-timeclock select{border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;font-size:14px;outline:none}
-    #xtv-timeclock input:focus{box-shadow:0 0 0 2px #93c5fd;border-color:#60a5fa}
+    #xtv-timeclock input, #xtv-timeclock select, #xtv-timeclock textarea{border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;font-size:14px;outline:none}
+    #xtv-timeclock input:focus, #xtv-timeclock select:focus, #xtv-timeclock textarea:focus{box-shadow:0 0 0 2px #93c5fd;border-color:#60a5fa}
 
     /* Table */
     #xtv-timeclock .table-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:16px}
-    #xtv-timeclock table{width:100%;border-collapse:collapse;font-size:14px;min-width:1180px}
+    #xtv-timeclock table{width:100%;border-collapse:collapse;font-size:14px;min-width:1100px}
     #xtv-timeclock thead th{position:sticky;top:0;background:#f1f5f9;border-bottom:1px solid #e5e7eb;padding:10px;text-align:center;white-space:nowrap}
     #xtv-timeclock tbody td{border-top:1px solid #f1f5f9;padding:8px;vertical-align:middle}
     #xtv-timeclock tbody td input, #xtv-timeclock tbody td textarea, #xtv-timeclock tbody td select{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;font-size:13px}
     #xtv-timeclock .del{background:#ef4444;color:#fff;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:700}
     #xtv-timeclock .del:hover{background:#dc2626}
-    #xtv-timeclock .miniBtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+    #xtv-timeclock .miniWrap{display:flex;flex-direction:column;gap:6px}
+    #xtv-timeclock .miniBtns{display:flex;gap:6px;flex-wrap:wrap}
     #xtv-timeclock .mini{padding:4px 8px;font-size:12px;border-radius:999px;border:none;background:#e2e8f0;color:#0f172a;cursor:pointer}
     #xtv-timeclock .mini.blue{background:linear-gradient(90deg,#0072ff,#00c6ff);color:#fff}
-    #xtv-timeclock .timer{font-size:12px;color:#334155;white-space:nowrap}
+    #xtv-timeclock .badge{display:inline-block;font-size:11px;padding:2px 6px;border-radius:999px;background:#e5f2ff;color:#0b4ab0;margin-left:6px}
 
     /* Totals */
     #xtv-timeclock .totals{margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -38,7 +39,7 @@
     #xtv-timeclock .card h4{margin:0 0 6px;font-size:15px;font-weight:800}
     #xtv-timeclock .row{display:flex;justify-content:space-between;font-size:13px;color:#334155}
 
-    /* Invoice modal */
+    /* Modal (Invoice) */
     #xtv-timeclock .modal{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:99999}
     #xtv-timeclock .modal .box{width:min(900px,95vw);background:#fff;border-radius:16px;padding:16px 16px 20px;max-height:90vh;overflow:auto}
     #xtv-timeclock .modal h3{margin:6px 0 10px}
@@ -61,7 +62,7 @@
   </style>
 
   <div class="wrap">
-    <div class="kicker">XTV Time Clock + Invoice Builder</div>
+    <div class="kicker">Time Clock & Invoice Builder</div>
     <h3>Track hours by Employee, Job & Location — then invoice in one click</h3>
     <p class="muted">Use the date controls to switch days. Your entries and settings auto-save in this browser.</p>
 
@@ -69,11 +70,11 @@
     <div class="bar">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button class="btn alt" id="tcPrev">&larr; Prev Day</button>
-        <input type="date" id="tcDate">
+        <input type="date" id="tcDate" aria-label="Selected day">
         <button class="btn alt" id="tcNext">Next Day &rarr;</button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn" id="tcAddRow">➕ Add Row</button>
+        <button class="btn" id="tcAddRow">➕ Add Work Row</button>
         <button class="btn" id="tcAddPTO">➕ Add PTO Row</button>
         <button class="btn" id="tcCopy">📋 Copy Time Entries</button>
         <button class="btn" id="tcCopySummary">📋 Copy Summary</button>
@@ -88,14 +89,14 @@
           <tr>
             <th>Type</th>
             <th>Employee</th>
-            <th>Job</h>
+            <th>Job</th>
             <th>Location</th>
             <th>Time In</th>
             <th>Time Out</th>
-            <th>Actions</th>
-            <th>Break (min)</th>
+            <th>Break (min) <span class="badge" title="Live stopwatch via Start/End">stopwatch</span></th>
             <th>Hours</th>
             <th>Notes</th>
+            <th>Actions</th>
             <th></th>
           </tr>
         </thead>
@@ -112,7 +113,7 @@
 
   <!-- Invoice Modal -->
   <div class="modal" id="tcModal" aria-modal="true" role="dialog">
-    <div class="box">
+    <div class="box" id="invoiceBox">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <h3 class="invTitle">Invoice</h3>
         <div class="actions">
@@ -224,7 +225,9 @@
       invBody: document.getElementById('invBody'),
       invSub: document.getElementById('invSub'),
       invTaxAmt: document.getElementById('invTaxAmt'),
-      invTotal: document.getElementById('invTotal')
+      invTotal: document.getElementById('invTotal'),
+
+      invoiceBox: document.getElementById('invoiceBox')
     };
 
     /* ---------- Date helpers ---------- */
@@ -237,7 +240,7 @@
       el.date.value = toYYYYMMDD(d||new Date());
       const rows = loadDay(el.date.value);
       if(rows.length===0){
-        const blank=[newRowData()];
+        const blank=[newRowData(false)];
         saveDay(el.date.value, blank);
         renderTable(blank);
       }else{
@@ -287,54 +290,6 @@
     function loadInvSettings(){ try{ return JSON.parse(localStorage.getItem(LS_INVOICE_KEY)||'{}'); }catch(e){ return {}; } }
     function saveInvSettings(s){ localStorage.setItem(LS_INVOICE_KEY, JSON.stringify(s)); }
 
-    /* ---------- Live timers ---------- */
-    // Keep per-row intervals for shift and break
-    const timers = new Map(); // idx -> {shiftInt, breakInt}
-
-    function startShiftTimer(idx, startStr, elSpan){
-      stopShiftTimer(idx);
-      const tick = ()=>{
-        const start = parse12h(startStr);
-        if(start==null){ elSpan.textContent=''; return; }
-        const now = new Date();
-        const nowMin = now.getHours()*60 + now.getMinutes();
-        let diff = nowMin - start; if(diff<0) diff += 1440;
-        const h = Math.floor(diff/60), m = diff%60;
-        elSpan.textContent = `On Shift ${('0'+h).slice(-2)}:${('0'+m).slice(-2)}`;
-      };
-      tick();
-      const id = setInterval(tick, 1000*30); // update every 30s (lightweight)
-      const rec = timers.get(idx)||{};
-      rec.shiftInt = id;
-      timers.set(idx, rec);
-    }
-    function stopShiftTimer(idx){
-      const rec = timers.get(idx);
-      if(rec && rec.shiftInt){ clearInterval(rec.shiftInt); rec.shiftInt=null; }
-    }
-
-    function startBreakTimer(idx, startStr, elSpan){
-      stopBreakTimer(idx);
-      const tick = ()=>{
-        const start = parse12h(startStr);
-        if(start==null){ elSpan.textContent=''; return; }
-        const now = new Date();
-        const nowMin = now.getHours()*60 + now.getMinutes();
-        let diff = nowMin - start; if(diff<0) diff += 1440;
-        const h = Math.floor(diff/60), m = diff%60;
-        elSpan.textContent = `On Break ${('0'+h).slice(-2)}:${('0'+m).slice(-2)}`;
-      };
-      tick();
-      const id = setInterval(tick, 1000*30);
-      const rec = timers.get(idx)||{};
-      rec.breakInt = id;
-      timers.set(idx, rec);
-    }
-    function stopBreakTimer(idx){
-      const rec = timers.get(idx);
-      if(rec && rec.breakInt){ clearInterval(rec.breakInt); rec.breakInt=null; }
-    }
-
     /* ---------- Rows ---------- */
     const PTO_TYPES = ['PTO – Vacation','PTO – Sick','PTO – Holiday','PTO – Personal','PTO – Other'];
 
@@ -342,17 +297,18 @@
       return {
         type: isPTO ? 'PTO – Vacation' : 'Work',
         employee:'', job:'', location:'',
-        in:'', out:'',
-        shiftStartTS:'', // for live timer (optional)
-        breakMin:0, breakStart:'', // break live start
+        in:'', out:'', breakMin:0, breakStart:'', // breakStart stores a 12h string while running
         hours:'', notes:''
       };
     }
 
+    // keep track of live break timers per row index
+    const breakTimers = new Map(); // idx -> intervalId
+
     function renderTable(rows){
-      // stop all timers before re-render
-      timers.forEach(rec=>{ if(rec.shiftInt) clearInterval(rec.shiftInt); if(rec.breakInt) clearInterval(rec.breakInt); });
-      timers.clear();
+      // clear any live timers
+      for(const id of breakTimers.values()){ clearInterval(id); }
+      breakTimers.clear();
 
       el.body.innerHTML='';
       rows.forEach((r, idx)=>el.body.appendChild(renderRow(r, idx)));
@@ -363,37 +319,50 @@
       const tr=document.createElement('tr');
       tr.innerHTML=`
         <td>
-          <select>
+          <select aria-label="Type">
             <option value="Work" ${r.type==='Work'?'selected':''}>Work</option>
             ${PTO_TYPES.map(t=>`<option value="${t}" ${r.type===t?'selected':''}>${t}</option>`).join('')}
           </select>
         </td>
-        <td><input placeholder="Employee" value="${r.employee||''}"></td>
-        <td><input placeholder="Job" value="${r.job||''}"></td>
-        <td><input placeholder="Location" value="${r.location||''}"></td>
-        <td><input placeholder="9:00 AM" value="${r.in||''}"></td>
-        <td><input placeholder="5:00 PM" value="${r.out||''}"></td>
-
+        <td><input placeholder="Employee" value="${r.employee||''}" aria-label="Employee"></td>
+        <td><input placeholder="Job" value="${r.job||''}" aria-label="Job"></td>
+        <td><input placeholder="Location" value="${r.location||''}" aria-label="Location"></td>
         <td>
-          <div class="miniBtns">
-            <button class="mini blue" title="Clock In Now">In</button>
-            <button class="mini blue" title="Clock Out Now">Out</button>
-            <span class="timer" data-shift-timer></span>
+          <div class="miniWrap">
+            <input placeholder="9:00 AM" value="${r.in||''}" aria-label="Time In">
+            <div class="miniBtns">
+              <button class="mini blue" title="Clock In Now">In</button>
+            </div>
           </div>
         </td>
-
         <td>
-          <div class="miniBtns">
-            <input type="number" min="0" step="1" placeholder="0" value="${r.breakMin||0}" style="width:84px">
-            <button class="mini" title="Start Break">Start</button>
-            <button class="mini" title="End Break">End</button>
-            <span class="timer" data-break-timer></span>
+          <div class="miniWrap">
+            <input placeholder="5:00 PM" value="${r.out||''}" aria-label="Time Out">
+            <div class="miniBtns">
+              <button class="mini blue" title="Clock Out Now">Out</button>
+            </div>
           </div>
         </td>
-
-        <td><input data-hours ${r.type==='Work'?'readonly':''} value="${r.hours||''}" tabindex="-1"></td>
-        <td><input placeholder="Notes" value="${r.notes||''}"></td>
-        <td><button class="del">✖</button></td>
+        <td>
+          <div class="miniWrap">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <input type="number" min="0" step="1" placeholder="0" value="${r.breakMin||0}" style="width:90px" aria-label="Break minutes">
+              <span class="badge" data-breakdisp>${r.breakStart ? 'Running 00:00' : '00:00'}</span>
+            </div>
+            <div class="miniBtns">
+              <button class="mini" title="Start Break">Start</button>
+              <button class="mini" title="End Break">End</button>
+            </div>
+          </div>
+        </td>
+        <td><input data-hours ${r.type==='Work'?'readonly':''} value="${r.hours||''}" tabindex="-1" aria-label="Hours"></td>
+        <td><input placeholder="Notes" value="${r.notes||''}" aria-label="Notes"></td>
+        <td>
+          <div class="miniBtns">
+            <button class="mini" title="Duplicate Row">Dup</button>
+          </div>
+        </td>
+        <td><button class="del" title="Delete Row">✖</button></td>
       `;
 
       const tSel = tr.querySelector('td:nth-child(1) select');
@@ -404,39 +373,81 @@
         tr.querySelector('td:nth-child(5) input'),
         tr.querySelector('td:nth-child(6) input'),
       ];
-      const inNow = tr.querySelector('td:nth-child(7) .miniBtns button:nth-child(1)');
-      const outNow = tr.querySelector('td:nth-child(7) .miniBtns button:nth-child(2)');
-      const shiftTimerSpan = tr.querySelector('[data-shift-timer]');
-
-      const brkInput = tr.querySelector('td:nth-child(8) input');
-      const brkStartBtn = tr.querySelector('td:nth-child(8) .miniBtns button:nth-child(2)');
-      const brkEndBtn = tr.querySelector('td:nth-child(8) .miniBtns button:nth-child(3)');
-      const breakTimerSpan = tr.querySelector('[data-break-timer]');
-
+      const brkInput = tr.querySelector('td:nth-child(7) input');
+      const brkDisp = tr.querySelector('[data-breakdisp]');
+      const brkStartBtn = tr.querySelector('td:nth-child(7) .miniBtns button:nth-child(1)');
+      const brkEndBtn = tr.querySelector('td:nth-child(7) .miniBtns button:nth-child(2)');
       const hrs = tr.querySelector('[data-hours]');
-      const notes = tr.querySelector('td:nth-child(10) input');
+      const notes = tr.querySelector('td:nth-child(9) input');
+      const inNow = tr.querySelector('td:nth-child(5) .miniBtns button');
+      const outNow = tr.querySelector('td:nth-child(6) .miniBtns button');
+      const dupBtn = tr.querySelector('td:nth-child(10) .miniBtns button');
       const delBtn = tr.querySelector('td:last-child .del');
 
-      let breakStartedAt = r.breakStart || '';
-      let shiftStartedAt = r.shiftStartTS || '';
-
+      /* PTO vs Work toggle */
       function applyTypeUI(){
         const isWork = (tSel.value==='Work');
-        [tin,tout,inNow,outNow,brkInput,brkStartBtn,brkEndBtn].forEach(x=>x.disabled = !isWork);
-        hrs.readOnly = isWork; // PTO: allow manual hours
+        tin.disabled = !isWork;
+        tout.disabled = !isWork;
+        brkInput.disabled = !isWork;
+        brkStartBtn.disabled = !isWork;
+        brkEndBtn.disabled = !isWork;
+        inNow.disabled = !isWork;
+        outNow.disabled = !isWork;
+        hrs.readOnly = isWork; // PTO: allow manual hours entry
         hrs.tabIndex = isWork ? -1 : 0;
         if(!isWork){
-          stopShiftTimer(idx); shiftTimerSpan.textContent='';
-          stopBreakTimer(idx); breakTimerSpan.textContent='';
-        }else{
-          // restore timers after rerender
-          if(tin.value && !tout.value){
-            if(shiftStartedAt){ startShiftTimer(idx, tin.value, shiftTimerSpan); }
-          }
-          if(breakStartedAt){ startBreakTimer(idx, breakStartedAt, breakTimerSpan); }
+          stopBreakTimer(idx); // ensure off
+          brkDisp.textContent = '00:00';
+          tin.value=''; tout.value=''; // keep PTO simple
         }
       }
+      applyTypeUI();
 
+      /* Live break stopwatch */
+      function startBreakTimer(){
+        stopBreakTimer(idx);
+        let startStr = now12h();
+        // if previously started, resume from that
+        if(r.breakStart){ startStr = r.breakStart; }
+        const startMin = parse12h(startStr);
+        if(startMin==null) return;
+        r.breakStart = startStr;
+        brkDisp.textContent = 'Running 00:00';
+        const id = setInterval(()=>{
+          const nowMin = parse12h(now12h());
+          if(nowMin==null) return;
+          let diff = nowMin - startMin;
+          if(diff<0) diff += 1440;
+          const mm = Math.floor(diff);
+          const m = Math.floor(mm/60), s = mm%60;
+          const mmStr = ('0'+Math.floor(diff/60)).slice(-2);
+          const ssStr = ('0'+(diff%60)).slice(-2);
+          brkDisp.textContent = `Running ${mmStr}:${ssStr}`;
+        }, 1000);
+        breakTimers.set(idx, id);
+      }
+      function stopBreakTimer(i){
+        if(breakTimers.has(i)){ clearInterval(breakTimers.get(i)); breakTimers.delete(i); }
+      }
+      function endBreakTimer(){
+        if(!r.breakStart){ return; }
+        const startMin = parse12h(r.breakStart);
+        const endMin = parse12h(now12h());
+        if(startMin!=null && endMin!=null){
+          let diff = endMin - startMin;
+          if(diff<0) diff += 1440;
+          brkInput.value = (parseInt(brkInput.value,10)||0) + diff; // add minutes
+        }
+        r.breakStart = '';
+        brkDisp.textContent = '00:00';
+        stopBreakTimer(idx);
+      }
+
+      // if row had active start saved, resume timer
+      if(r.breakStart){ startBreakTimer(); }
+
+      /* sync to storage + recalc */
       function sync(save=true){
         const rows=getRows();
         rows[idx]={
@@ -446,71 +457,56 @@
           location: loc.value.trim(),
           in: tin.value.trim(),
           out: tout.value.trim(),
-          shiftStartTS: shiftStartedAt||'',
           breakMin: +brkInput.value||0,
-          breakStart: breakStartedAt||'',
+          breakStart: r.breakStart || '',
           hours: hrs.value.trim(),
           notes: notes.value.trim()
         };
         if(save){ saveDay(el.date.value, rows); }
         recalcRow(tr, rows[idx]);
         renderTotals();
-        applyTypeUI();
       }
 
-      // Events
+      /* Events */
       [tSel,emp,job,loc,tin,tout,brkInput,notes,hrs].forEach(inp=>inp.addEventListener('input', ()=>sync(true)));
 
-      // Clock in/out
-      inNow.addEventListener('click', ()=>{
-        tin.value = now12h();
-        shiftStartedAt = tin.value;
-        startShiftTimer(idx, shiftStartedAt, shiftTimerSpan);
-        sync(true);
-      });
-      outNow.addEventListener('click', ()=>{
-        tout.value = now12h();
-        shiftStartedAt = ''; // stop shift timer
-        stopShiftTimer(idx); shiftTimerSpan.textContent='';
-        sync(true);
-      });
+      inNow.addEventListener('click', ()=>{ tin.value = now12h(); sync(true); });
+      outNow.addEventListener('click', ()=>{ tout.value = now12h(); sync(true); });
 
-      // Break start/end
       brkStartBtn.addEventListener('click', ()=>{
         if(tSel.value!=='Work') return;
-        breakStartedAt = now12h();
-        startBreakTimer(idx, breakStartedAt, breakTimerSpan);
+        r.breakStart = r.breakStart || now12h();
+        startBreakTimer();
         sync(false);
       });
       brkEndBtn.addEventListener('click', ()=>{
-        if(!breakStartedAt) return;
-        const startMin = parse12h(breakStartedAt);
-        const endMin = parse12h(now12h());
-        if(startMin!=null && endMin!=null){
-          let diff = endMin - startMin;
-          if(diff<0) diff += 1440;
-          brkInput.value = (parseInt(brkInput.value,10)||0) + diff;
-        }
-        breakStartedAt = '';
-        stopBreakTimer(idx); breakTimerSpan.textContent='';
+        if(tSel.value!=='Work') return;
+        endBreakTimer();
         sync(true);
       });
 
+      dupBtn.addEventListener('click', ()=>{
+        const rows = loadDay(el.date.value);
+        const curr = rows[idx];
+        rows.splice(idx+1, 0, {...curr, breakStart:'', hours:curr.type==='Work'?'':curr.hours});
+        saveDay(el.date.value, rows);
+        renderTable(rows);
+      });
+
       delBtn.addEventListener('click', ()=>{
-        stopShiftTimer(idx); stopBreakTimer(idx);
+        stopBreakTimer(idx);
         const rows=getRows().filter((_,i)=>i!==idx);
         saveDay(el.date.value, rows);
         renderTable(rows);
         renderTotals();
       });
 
-      applyTypeUI();
       return tr;
     }
 
     function getRows(){
       const rows=[];
-      el.body.querySelectorAll('tr').forEach(tr=>{
+      el.body.querySelectorAll('tr').forEach((tr, idx)=>{
         const tSel=tr.querySelector('td:nth-child(1) select');
         const tds=tr.querySelectorAll('td');
         rows.push({
@@ -520,10 +516,10 @@
           location: tds[3].querySelector('input').value.trim(),
           in:       tds[4].querySelector('input').value.trim(),
           out:      tds[5].querySelector('input').value.trim(),
-          // timers are kept transient; we store only start strings if present
-          breakMin: +tds[8-1].querySelector('input').value || 0,
-          hours:    tds[9-1].querySelector('input').value.trim(),
-          notes:    tds[10-1].querySelector('input').value.trim()
+          breakMin: +tds[6].querySelector('input').value || 0,
+          breakStart: '', // not retrievable after render; managed live
+          hours:    tds[7].querySelector('input').value.trim(),
+          notes:    tds[8].querySelector('input').value.trim()
         });
       });
       return rows;
@@ -531,20 +527,12 @@
 
     function recalcRow(tr, r){
       if(r.type!=='Work'){
-        return; // PTO manual
+        // PTO hours are manual
+        return;
       }
       const mIn=parse12h(r.in), mOut=parse12h(r.out);
-      let mins = 0;
-      if(mIn!=null){
-        // If no Time Out yet, show elapsed so far (minus break)
-        if(mOut==null){
-          const now=new Date();
-          const nowMin=now.getHours()*60 + now.getMinutes();
-          mins = nowMin - mIn; if(mins<0) mins+=1440;
-        }else{
-          mins = mOut - mIn; if(mins<0) mins+=1440;
-        }
-      }
+      let mins = (mIn!=null && mOut!=null) ? (mOut - mIn) : 0;
+      if(mins<0) mins += 24*60; // cross-midnight safety
       mins -= (parseInt(r.breakMin,10)||0);
       if(mins<0) mins=0;
       tr.querySelector('[data-hours]').value = fmtHours(mins);
@@ -563,12 +551,8 @@
       rows.forEach(r=>{
         let mins=0;
         if(r.type==='Work'){
-          const mIn=parse12h(r.in);
-          let mOut=parse12h(r.out);
-          if(mIn==null) return;
-          if(mOut==null){
-            const now=new Date(); mOut = now.getHours()*60 + now.getMinutes();
-          }
+          const mIn=parse12h(r.in), mOut=parse12h(r.out);
+          if(mIn==null||mOut==null) return;
           mins = mOut - mIn; if(mins<0) mins+=1440;
           mins -= (parseInt(r.breakMin,10)||0);
           if(mins<0) mins=0;
@@ -646,9 +630,9 @@
           tds[3].querySelector('input').value,
           tds[4].querySelector('input').value,
           tds[5].querySelector('input').value,
-          tds[8-1].querySelector('input').value, // break min
-          tds[9-1].querySelector('input').value, // hours
-          tds[10-1].querySelector('input').value // notes
+          tds[6].querySelector('input').value,
+          tds[7].querySelector('input').value,
+          tds[8].querySelector('input').value,
         ].map(x=>String(x||'').replace(/\n/g,' '));
         lines.push(row.join('\t'));
       });
@@ -665,13 +649,9 @@
         const emp=(r.employee||'(No name)').trim();
         if(!empMap.has(emp)) empMap.set(emp, []);
         if(r.type==='Work'){
-          const mIn=parse12h(r.in);
-          let mOut=parse12h(r.out);
-          if(mIn==null) return;
-          if(mOut==null){
-            const now=new Date(); mOut = now.getHours()*60 + now.getMinutes();
-          }
-          let mins = mOut - mIn; if(mins<0) mins+=1440;
+          const mIn=parse12h(r.in), mOut=parse12h(r.out);
+          if(mIn==null||mOut==null) return;
+          let mins=mOut-mIn; if(mins<0) mins+=1440;
           mins -= (parseInt(r.breakMin,10)||0);
           if(mins<0) mins=0;
           empMap.get(emp).push({label:`${r.job||'(no job)'} @ ${r.location||'(no location)'}`, hours: mins/60});
@@ -736,12 +716,8 @@
       rows.forEach(r=>{
         let hours=0;
         if(r.type==='Work'){
-          const mIn=parse12h(r.in);
-          let mOut=parse12h(r.out);
-          if(mIn==null) return;
-          if(mOut==null){
-            const now=new Date(); mOut = now.getHours()*60 + now.getMinutes();
-          }
+          const mIn=parse12h(r.in), mOut=parse12h(r.out);
+          if(mIn==null||mOut==null) return;
           let mins=mOut-mIn; if(mins<0) mins+=1440;
           mins -= (parseInt(r.breakMin,10)||0);
           if(mins<0) mins=0;
@@ -811,11 +787,11 @@
       renderInvoice();
       openModal();
     });
-    el.close.addEventListener('click', ()=>{ closeModal(); });
+    el.close.addEventListener('click', closeModal);
 
     // Email Invoice
     el.email.addEventListener('click', ()=>{
-      const s=captureInvSettings();
+      captureInvSettings();
       let body = `Invoice #: ${el.invNumber.value}\nDate: ${el.invDate.value}\nBusiness: ${el.invBiz.value}\n${el.invBizAddr.value}\n\nBill To:\n${el.invClient.value}\n${el.invClientAddr.value}\n\n`;
       el.invBody.querySelectorAll('tr').forEach(tr=>{
         const tds = tr.querySelectorAll('td');
@@ -837,19 +813,17 @@
       window.location.href = mailto;
     });
 
-    // Download PDF (fallback to Print for GoDaddy blocks)
+    // Download PDF (fallback to Print)
     el.download.addEventListener('click', ()=>{
       captureInvSettings();
-      const modalBox = el.modal.querySelector('.box');
-      const useHtml2Pdf = (typeof html2pdf !== 'undefined');
-      if(useHtml2Pdf){
+      const modalBox = el.invoiceBox;
+      if(typeof html2pdf !== 'undefined'){
         const opt = { margin: 0.5, filename: (el.invNumber.value || 'invoice') + '.pdf', image: { type:'jpeg', quality:0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit:'in', format:'letter', orientation:'portrait' } };
         html2pdf().set(opt).from(modalBox).save();
       }else{
         window.print();
       }
     });
-
     // Print (invoice only due to @media print)
     el.print.addEventListener('click', ()=>{ captureInvSettings(); window.print(); });
 
@@ -865,10 +839,10 @@
   {
     "@context":"https://schema.org",
     "@type":"SoftwareApplication",
-    "name":"XTV Time Clock + Invoice Builder",
+    "name":"Time Clock & Invoice Builder",
     "applicationCategory":"BusinessApplication",
     "operatingSystem":"WebBrowser",
-    "description":"Real punch clock with live timers, multiple shifts, PTO, copy-to-Excel, and invoice PDF/print/email. Data persists locally.",
+    "description":"Track daily hours by employee, job, and location with live break stopwatch and PTO. Copy entries and summaries to Excel. Generate printable or downloadable PDF invoices. Data persists locally.",
     "softwareVersion":"3.0",
     "offers":{"@type":"Offer","price":"0","priceCurrency":"USD","availability":"https://schema.org/InStock"},
     "publisher":{"@type":"Organization","name":"Xecute The Vision"}
