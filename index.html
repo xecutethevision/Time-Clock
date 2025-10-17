@@ -717,7 +717,7 @@ const header = ['Date','Type','Employee','Job','Location','AM In','AM Out','PM I
 
   lines.forEach(item=>{
     // Unique key for this invoice line (so rates persist per Employee/Job/Location/Type)
-    const key = [item.emp||'(No name)', item.job||'(No job)', item.loc||'(No location)', item.type||''].join('|');
+const key = [item.emp||'(No name)', item.job||'(No job)', item.loc||'(No location)', item.type||'', Math.random().toString(36).slice(2,7)].join('|');
 
     const tr=document.createElement('tr');
     tr.innerHTML = `
@@ -847,6 +847,7 @@ const header = ['Date','Type','Employee','Job','Location','AM In','AM Out','PM I
   }
   </script>
 </section>
+
 
 
 
