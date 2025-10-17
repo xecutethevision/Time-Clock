@@ -44,10 +44,15 @@
     #xtv-timeclock .modal h3{margin:6px 0 10px}
     #xtv-timeclock .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     #xtv-timeclock .stack{display:flex;flex-direction:column;gap:6px}
-    #xtv-timeclock .logoPreview{width:100px;height:100px;object-fit:contain;border:1px dashed #e5e7eb;border-radius:12px;background:#f8fafc}
+    /* Smaller logo */
+    #xtv-timeclock .logoPreview{width:50px;height:50px;object-fit:contain;border:1px dashed #e5e7eb;border-radius:12px;background:#f8fafc}
     #xtv-timeclock .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px}
     #xtv-timeclock .sum{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
     #xtv-timeclock .sum div{background:#f1f5f9;border-radius:10px;padding:8px 10px;font-weight:700}
+
+    /* Make invoice table text a touch tighter so Rate fits */
+    #xtv-timeclock .invTable{font-size:13px}
+    #xtv-timeclock .invRateInput{width:80px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;text-align:right}
 
     @media(max-width:1000px){ #xtv-timeclock .totals{grid-template-columns:1fr} #xtv-timeclock .grid2{grid-template-columns:1fr} }
 
@@ -116,12 +121,11 @@
   <div class="modal" id="tcModal" aria-modal="true" role="dialog">
     <div class="box">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <h3 class="invTitle">Invoice</h3>
+        <h3 class="invTitle">Invoice <span id="invForDate" style="font-weight:700;color:#0f172a;font-size:14px;margin-left:6px;"></span></h3>
         <div class="actions">
           <button class="btn alt" id="tcClose">Close</button>
-          <button class="btn" id="tcEmail">✉️ Email Invoice</button>
+          <!-- Removed Email & Print per request -->
           <button class="btn" id="tcDownload">⬇️ Download PDF</button>
-          <button class="btn" id="tcPrint">🖨️ Print</button>
         </div>
       </div>
 
@@ -145,9 +149,7 @@
           <input id="invClient" placeholder="Client / Company">
           <label><strong>Client Address</strong></label>
           <textarea id="invClientAddr" rows="3" placeholder="Street, City, State, ZIP"></textarea>
-          <label><strong>Client Email (for Email Invoice)</strong></label>
-          <input id="invClientEmail" type="email" placeholder="client@email.com">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">
             <div class="stack" style="flex:1;min-width:140px;">
               <label><strong>Invoice #</strong></label>
               <input id="invNumber" placeholder="e.g., 1001">
@@ -165,7 +167,7 @@
       </div>
 
       <div id="invLinesWrap" style="margin-top:12px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <table class="invTable" style="width:100%;border-collapse:collapse;">
           <thead>
             <tr style="background:#f1f5f9;">
               <th style="padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;">Employee</th>
@@ -208,9 +210,7 @@
 
       modal: document.getElementById('tcModal'),
       close: document.getElementById('tcClose'),
-      email: document.getElementById('tcEmail'),
       download: document.getElementById('tcDownload'),
-      print: document.getElementById('tcPrint'),
 
       invBiz: document.getElementById('invBiz'),
       invBizAddr: document.getElementById('invBizAddr'),
@@ -218,10 +218,10 @@
       invLogoPrev: document.getElementById('invLogoPrev'),
       invClient: document.getElementById('invClient'),
       invClientAddr: document.getElementById('invClientAddr'),
-      invClientEmail: document.getElementById('invClientEmail'),
       invNumber: document.getElementById('invNumber'),
       invDate: document.getElementById('invDate'),
       invTax: document.getElementById('invTax'),
+      invForDate: document.getElementById('invForDate'),
 
       invBody: document.getElementById('invBody'),
       invSub: document.getElementById('invSub'),
@@ -296,10 +296,9 @@
       return {
         type: isPTO ? 'PTO – Vacation' : 'Work',
         employee:'', job:'', location:'',
-        amIn:'', amOut:'',
-        pmIn:'', pmOut:'',
-        breakMin:0, breakStartTs:null, // timestamp while break running
-        hours:'', notes:''
+        amIn:'', amOut:'', pmIn:'', pmOut:'',
+        breakMin:0, breakStartTs:null,
+        hours:''
       };
     }
 
@@ -360,14 +359,13 @@
       const brkEndBtn   = tr.querySelector('td:nth-child(9) .miniBtns button:nth-of-type(2)');
       const brkLive     = tr.querySelector('[data-breaklive]');
       const hrs = tr.querySelector('[data-hours]');
-      const notesCellIndex = 11; // actions at 11th column, delete at 12th; notes we use hours cell only (no notes col now)
       const inAM  = tr.querySelector('td:nth-child(11) .miniBtns button:nth-of-type(1)');
       const outAM = tr.querySelector('td:nth-child(11) .miniBtns button:nth-of-type(2)');
       const inPM  = tr.querySelector('td:nth-child(11) .miniBtns button:nth-of-type(3)');
       const outPM = tr.querySelector('td:nth-child(11) .miniBtns button:nth-of-type(4)');
       const delBtn = tr.querySelector('td:last-child .del');
 
-      // persist running break timer in row state
+      // state for live break
       let breakStartTs = (r.breakStartTs && typeof r.breakStartTs==='number') ? r.breakStartTs : null;
       let liveTimerId = null;
 
@@ -388,14 +386,13 @@
       }
       if(breakStartTs){ startLiveTimer(); } else { stopLiveTimer(); }
 
-      // Toggle UI by type
+      // Toggle fields by type
       function applyTypeUI(){
         const isWork = (tSel.value==='Work');
         [amIn,amOut,pmIn,pmOut,brkInput].forEach(x=>x.disabled=!isWork);
         [brkStartBtn,brkEndBtn,inAM,outAM,inPM,outPM].forEach(x=>x.disabled=!isWork);
-        hrs.readOnly = isWork ? true : false; // PTO allows manual entry
+        hrs.readOnly = isWork ? true : false;
         if(!isWork){
-          // Clear work fields for PTO
           amIn.value=''; amOut.value=''; pmIn.value=''; pmOut.value='';
           brkInput.value=0;
           breakStartTs=null; stopLiveTimer();
@@ -415,9 +412,8 @@
           pmIn: pmIn.value.trim(),
           pmOut: pmOut.value.trim(),
           breakMin: +brkInput.value||0,
-          breakStartTs: breakStartTs, // persist running break (timestamp)
-          hours: hrs.value.trim(),
-          notes: '' // kept for future
+          breakStartTs: breakStartTs,
+          hours: hrs.value.trim()
         };
         if(save){ saveDay(el.date.value, rows); }
         recalcRow(tr, rows[idx]);
@@ -433,7 +429,7 @@
       outPM.addEventListener('click', ()=>{ pmOut.value = now12h(); sync(true); });
 
       brkStartBtn.addEventListener('click', ()=>{
-        if(breakStartTs) return; // already running
+        if(breakStartTs) return;
         breakStartTs = Date.now();
         startLiveTimer();
         sync(true);
@@ -472,9 +468,7 @@
           pmIn:     tds[6].querySelector('input').value.trim(),
           pmOut:    tds[7].querySelector('input').value.trim(),
           breakMin: +tds[8].querySelector('input').value || 0,
-          // grab running TS if visible
-          hours:    tds[10-1].querySelector('input').value.trim(),
-          // break TS is stored on save; no read here
+          hours:    tds[9].querySelector('input').value.trim()
         });
       });
       return rows;
@@ -492,10 +486,7 @@
     }
 
     function recalcRow(tr, r){
-      if(r.type!=='Work'){
-        // PTO hours are manual entry
-        return;
-      }
+      if(r.type!=='Work'){ return; } // PTO hours typed manually
       const mins = calcWorkMinutes(r);
       tr.querySelector('[data-hours]').value = fmtHours(mins);
     }
@@ -530,8 +521,7 @@
         card.className='card';
         card.innerHTML=`<h4>${emp}</h4>
           <div class="row"><div>Total Hours</div><div><strong>${fmtHours(totalM)}</strong></div></div>
-          ${items.map(x=>`<div class="row"><div>${x.type==='Work'?`${x.job||'(no job)'} @ ${x.location||'(no location)'}`
-            : x.type}</div><div>${fmtHours(x.mins)} h</div></div>`).join('')}
+          ${items.map(x=>`<div class="row"><div>${x.type==='Work'?`${x.job||'(no job)'} @ ${x.location||'(no location)'}`: x.type}</div><div>${fmtHours(x.mins)} h</div></div>`).join('')}
         `;
         el.totals.appendChild(card);
       }
@@ -575,7 +565,7 @@
       setTimeout(()=>{ btn.textContent=prev; btn.style.background='linear-gradient(90deg,#0072ff,#00c6ff)'; }, 1800);
     }
 
-    el.copy.addEventListener('click', ()=>{
+    document.getElementById('tcCopy').addEventListener('click', ()=>{
       const header = ['Type','Employee','Job','Location','AM In','AM Out','PM In','PM Out','Break (min)','Hours'];
       const lines=[header.join('\t')];
       el.body.querySelectorAll('tr').forEach(tr=>{
@@ -595,13 +585,14 @@
         ].map(x=>String(x||'').replace(/\n/g,' '));
         lines.push(row.join('\t'));
       });
-      copyText(lines.join('\n')).then(()=>flash(el.copy));
+      copyText(lines.join('\n')).then(()=>flash(document.getElementById('tcCopy')));
     });
 
-    /* ---------- Copy: Daily Summary ---------- */
-    el.copySummary.addEventListener('click', ()=>{
+    /* ---------- Copy: Daily Summary (includes date) ---------- */
+    document.getElementById('tcCopySummary').addEventListener('click', ()=>{
       const rows=getRows();
       const out=[];
+      out.push(`Date\t${el.date.value}`);  // include selected date
       out.push(['Employee','Job/Location or PTO Type','Hours'].join('\t'));
       const empMap=new Map();
       rows.forEach(r=>{
@@ -619,7 +610,7 @@
         if(items.length===0){ out.push([emp,'—','0'].join('\t')); continue; }
         items.forEach(it=>out.push([emp, it.label, it.hours.toFixed(2)].join('\t')));
       }
-      copyText(out.join('\n')).then(()=>flash(el.copySummary));
+      copyText(out.join('\n')).then(()=>flash(document.getElementById('tcCopySummary')));
     });
 
     /* ---------- Invoice ---------- */
@@ -632,7 +623,6 @@
       el.invBizAddr.value = s.addr || '';
       el.invClient.value = s.client || '';
       el.invClientAddr.value = s.clientAddr || '';
-      el.invClientEmail.value = s.clientEmail || '';
       el.invNumber.value = s.number || '';
       el.invDate.value = s.date || toYYYYMMDD(new Date());
       el.invTax.value = (s.taxPct==null)?'0':s.taxPct;
@@ -644,13 +634,12 @@
         addr: el.invBizAddr.value.trim(),
         client: el.invClient.value.trim(),
         clientAddr: el.invClientAddr.value.trim(),
-        clientEmail: el.invClientEmail.value.trim(),
         number: el.invNumber.value.trim(),
         date: el.invDate.value,
         taxPct: parseFloat(el.invTax.value)||0,
         logo: el.invLogoPrev.getAttribute('src')||''
       };
-      saveInvSettings(s);
+      localStorage.setItem(LS_INVOICE_KEY, JSON.stringify(s));
       return s;
     }
     el.invLogo.addEventListener('change', (e)=>{
@@ -660,7 +649,7 @@
       reader.onload=()=>{ el.invLogoPrev.src=reader.result; captureInvSettings(); };
       reader.readAsDataURL(file);
     });
-    [el.invBiz, el.invBizAddr, el.invClient, el.invClientAddr, el.invClientEmail, el.invNumber, el.invDate, el.invTax].forEach(inp=>{
+    [el.invBiz, el.invBizAddr, el.invClient, el.invClientAddr, el.invNumber, el.invDate, el.invTax].forEach(inp=>{
       inp.addEventListener('input', captureInvSettings);
       inp.addEventListener('change', captureInvSettings);
     });
@@ -685,6 +674,7 @@
 
     function renderInvoice(){
       captureInvSettings();
+      el.invForDate.textContent = `(For Date: ${el.date.value})`; // show selected date on invoice
       const lines = buildInvoiceLines();
       el.invBody.innerHTML='';
       lines.forEach(item=>{
@@ -696,7 +686,7 @@
           <td style="padding:8px;border-top:1px solid #f1f5f9">${item.type}</td>
           <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">${item.hours.toFixed(2)}</td>
           <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right">
-            <input class="invRate" type="number" step="0.01" placeholder="0.00" style="width:100px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;text-align:right">
+            <input class="invRateInput invRate" type="number" step="0.01" placeholder="0.00">
           </td>
           <td style="padding:8px;border-top:1px solid #f1f5f9;text-align:right"><span class="invAmt">0.00</span></td>
         `;
@@ -738,31 +728,7 @@
       renderInvoice();
       openModal();
     });
-    el.close.addEventListener('click', closeModal);
-
-    // Email Invoice
-    el.email.addEventListener('click', ()=>{
-      const s=captureInvSettings();
-      let body = `Invoice #: ${el.invNumber.value}\nDate: ${el.invDate.value}\nBusiness: ${el.invBiz.value}\n${el.invBizAddr.value}\n\nBill To:\n${el.invClient.value}\n${el.invClientAddr.value}\n\n`;
-      el.invBody.querySelectorAll('tr').forEach(tr=>{
-        const tds = tr.querySelectorAll('td');
-        const emp = tds[0].innerText.trim();
-        const job = tds[1].innerText.trim();
-        const loc = tds[2].innerText.trim();
-        const typ = tds[3].innerText.trim();
-        const hrs = tds[4].innerText.trim();
-        const rate = tr.querySelector('.invRate')?.value || '0.00';
-        const amt = tr.querySelector('.invAmt')?.textContent || '0.00';
-        body += `${emp} | ${job} @ ${loc} (${typ}) — ${hrs}h × $${rate} = $${amt}\n`;
-      });
-      body += `\nSubtotal: $${el.invSub.textContent}\n`;
-      const taxPct=parseFloat(el.invTax.value)||0;
-      body += `Tax (${taxPct}%): $${el.invTaxAmt.textContent}\n`;
-      body += `Total: $${el.invTotal.textContent}\n\nThank you,\n${el.invBiz.value}`;
-      const subject = encodeURIComponent(`Invoice ${el.invNumber.value}`);
-      const mailto = `mailto:${encodeURIComponent(el.invClientEmail.value||'')}?subject=${subject}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
-    });
+    el.close.addEventListener('click', ()=>{ closeModal(); });
 
     // Download PDF (fallback to Print for strict sandboxes)
     el.download.addEventListener('click', ()=>{
@@ -773,22 +739,17 @@
         const opt = { margin: 0.5, filename: (el.invNumber.value || 'invoice') + '.pdf', image: { type:'jpeg', quality:0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit:'in', format:'letter', orientation:'portrait' } };
         html2pdf().set(opt).from(modalBox).save();
       }else{
+        // GoDaddy fallback
         window.print();
       }
     });
-
-    // Print (invoice only due to @media print)
-    el.print.addEventListener('click', ()=>{ captureInvSettings(); window.print(); });
 
     /* ---------- Init ---------- */
     document.getElementById('tcAddRow').disabled = false;
     loadDate(new Date());
 
-    // Keep break timers visually ticking even if rows not edited
-    setInterval(()=>{
-      // Re-run totals & row recalc to keep live break pills updating where needed
-      recalcAll();
-    }, 15000); // light refresh; live pills are handled per-row at 500ms when active
+    // Light refresh so any live break pills keep looking active (row timers themselves tick every 500ms)
+    setInterval(()=>{ /* noop refresh to keep UI lively */ }, 15000);
 
   })();
   </script>
@@ -801,8 +762,8 @@
     "name":"XTV Time Clock + Invoice Builder",
     "applicationCategory":"BusinessApplication",
     "operatingSystem":"WebBrowser",
-    "description":"Track daily hours by employee with AM/PM punches and live break timer. PTO inline. Copy time entries and summaries to Excel. Generate printable or downloadable PDF invoices. Data persists locally.",
-    "softwareVersion":"3.0",
+    "description":"Track daily hours by employee with AM/PM punches and live break timer. PTO inline. Copy time entries and summaries to Excel. Generate downloadable PDF invoices. Data persists locally.",
+    "softwareVersion":"3.1",
     "offers":{"@type":"Offer","price":"0","priceCurrency":"USD","availability":"https://schema.org/InStock"},
     "publisher":{"@type":"Organization","name":"Xecute The Vision"}
   }
